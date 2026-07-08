@@ -1,65 +1,96 @@
-import Image from "next/image";
+import React from "react";
+import { Hero } from "@/components/customer/Hero";
+import { FeaturedBundle } from "@/components/customer/FeaturedBundle";
+import { FeaturedCategories } from "@/components/customer/FeaturedCategories";
+import { ProductCard } from "@/components/customer/ProductCard";
+import { getFilteredProducts } from "@/app/actions/products";
+import { connectDB } from "@/lib/db";
+import { Product } from "@/models/Product";
+import { FeaturedBundleModel } from "@/models/FeaturedBundle";
+import { ArrowRight } from "lucide-react";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+async function getDynamicBundle() {
+  try {
+    await connectDB();
+    const bundle = await FeaturedBundleModel.findOne({ isActive: true }).lean();
+    return bundle ? JSON.parse(JSON.stringify(bundle)) : null;
+  } catch (error) {
+    console.error("Error fetching dynamic bundle:", error);
+    return null;
+  }
+}
+
+async function getDynamicFeaturedProducts() {
+  try {
+    await connectDB();
+    const featured = await Product.find({ isActive: true, isFeatured: true }).limit(4).lean();
+    return JSON.parse(JSON.stringify(featured));
+  } catch (error) {
+    console.error("Error fetching dynamic featured products:", error);
+    return [];
+  }
+}
+
+export default async function HomePage() {
+  // 1. جلب باقة السعادة المميزة ديناميكياً من قاعدة البيانات
+  const dynamicBundle = await getDynamicBundle();
+
+  // 2. جلب المنتجات المميزة ديناميكياً من قاعدة البيانات
+  let featuredProducts = await getDynamicFeaturedProducts();
+
+  // 3. في حال عدم قيام المشرف بتحديد منتجات مميزة، نقوم بالسحب الاحتياطي لأحدث 4 سلع
+  if (!featuredProducts || featuredProducts.length === 0) {
+    const products = await getFilteredProducts({ sortBy: "newest" });
+    featuredProducts = products.slice(0, 4);
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="bg-[#FAF9F6] dark:bg-neutral-950 min-h-screen space-y-12">
+      
+      {/* 1. البانر الترحيبي الفاخر (Hero Section) */}
+      <Hero bundle={dynamicBundle} />
+
+      {/* 2. عرض الباقة الترويجية المميزة (Featured Bundle Section - Dynamic) */}
+      <FeaturedBundle bundle={dynamicBundle} />
+
+      {/* 3. فئاتنا المميزة البصرية (Featured Categories Section) */}
+      <FeaturedCategories />
+
+      {/* 4. المنتجات المميزة الأكثر مبيعاً (Curated Product Grid - Dynamic) */}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 space-y-10">
+        <div className="text-center space-y-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3.5 py-1 text-[10px] font-bold text-primary dark:text-accent uppercase tracking-wider">
+            ✨ منتجات منتقاة بعناية
+          </span>
+          <h2 className="font-serif text-3xl font-black text-neutral-900 dark:text-white">
+            منتجات مميزة الأكثر طلباً
+          </h2>
+          <p className="text-xs text-neutral-500 max-w-md mx-auto">
+            تصفح التشكيلة المختارة من سلع BioZad الطبيعية والفاخرة بنسبة 100% الأكثر طلباً وتقييماً.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+
+        {/* شبكة المنتجات (4 أعمدة) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {featuredProducts.map((product: any) => (
+            <ProductCard key={product._id} product={product} />
+          ))}
+        </div>
+
+        {/* زر عرض كامل التشكيلة */}
+        <div className="flex justify-center pt-4">
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/shop#products"
+            className="inline-flex items-center gap-2 bg-primary text-white hover:bg-primary/95 px-8 py-4 rounded-full text-xs font-bold shadow-premium-md hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+            <span>عرض المزيد من المنتجات (المعرض الفاخر)</span>
+            <ArrowRight className="h-4.5 w-4.5 rotate-180 rtl:rotate-0" />
           </a>
         </div>
-      </main>
+      </section>
+
     </div>
   );
 }

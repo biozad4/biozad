@@ -1,26 +1,95 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* 1. لوحة الألوان الطبيعية والفاخرة لـ BioZad */
+  --color-background: hsl(40 20% 98%); /* Warm Off-White / Alabaster */
+  --color-foreground: hsl(24 9.8% 10%); /* Dark Charcoal */
+
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(24 9.8% 10%);
+
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(24 9.8% 10%);
+
+  --color-primary: hsl(130 18% 22%); /* Deep Forest Olive */
+  --color-primary-foreground: hsl(40 20% 98%);
+
+  --color-secondary: hsl(40 10% 94%); /* Soft Warm Gray */
+  --color-secondary-foreground: hsl(24 9.8% 10%);
+
+  --color-accent: hsl(38 45% 50%); /* Luxury Gold */
+  --color-accent-foreground: hsl(40 20% 98%);
+
+  --color-muted: hsl(40 5% 90%);
+  --color-muted-foreground: hsl(25 5.3% 44.7%);
+
+  --color-destructive: hsl(0 84.2% 60.2%);
+  --color-destructive-foreground: hsl(210 40% 98%);
+
+  --color-border: hsl(40 6% 90%);
+  --color-input: hsl(40 6% 90%);
+  --color-ring: hsl(130 18% 22%);
+
+  /* 2. الزوايا الدائرية المخصصة */
+  --radius-lg: 0.75rem;
+  --radius-md: calc(0.75rem - 2px);
+  --radius-sm: calc(0.75rem - 4px);
+
+  /* 3. الظلال الفاخرة المخصصة المستوحاة من Apple و Notion */
+  --shadow-premium-sm: 0 2px 8px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.01);
+  --shadow-premium-md: 0 10px 30px -10px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  --shadow-premium-lg: 0 20px 40px -15px rgba(0, 0, 0, 0.05), 0 1px 5px rgba(0, 0, 0, 0.03);
+
+  /* 4. الخطوط الراقية */
+  --font-serif: "Playfair Display", Georgia, serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* 5. إعداد تفعيل المظهر الداكن (Dark Mode) في Tailwind v4 */
+@variant dark (&:where(.dark, .dark *));
+
+.dark {
+  --color-background: hsl(24 9.8% 10%);
+  --color-foreground: hsl(40 20% 98%);
+
+  --color-card: hsl(24 9.8% 12%);
+  --color-card-foreground: hsl(40 20% 98%);
+
+  --color-popover: hsl(24 9.8% 12%);
+  --color-popover-foreground: hsl(40 20% 98%);
+
+  --color-primary: hsl(40 20% 98%);
+  --color-primary-foreground: hsl(130 18% 22%);
+
+  --color-secondary: hsl(24 9.8% 16%);
+  --color-secondary-foreground: hsl(40 20% 98%);
+
+  --color-muted: hsl(24 9.8% 16%);
+  --color-muted-foreground: hsl(40 5% 70%);
+
+  --color-border: hsl(24 9.8% 16%);
+  --color-input: hsl(24 9.8% 16%);
+  --color-ring: hsl(38 45% 50%);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html {
+  scroll-behavior: smooth;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-accent/30;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-serif);
+    letter-spacing: -0.02em;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }
