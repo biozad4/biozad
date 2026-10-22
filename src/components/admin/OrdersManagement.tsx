@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { getAdminOrders, updateOrderStatus } from "@/app/actions/adminOrders";
 import { useToastStore } from "@/store/useToastStore";
 import { PremiumCard } from "../ui/premium-card";
-import { Search, Filter, MapPin, Calendar, Clock, Package, Check, X, Truck, ChevronDown, ChevronUp, Clock4, ShieldCheck, Ban } from "lucide-react";
+import { Search, Filter, MapPin, Calendar, Clock, Package, Check, X, Truck, ChevronDown, ChevronUp, Clock4, ShieldCheck, Ban, MessageCircle } from "lucide-react";
+import { getAdminToCustomerWhatsAppUrl } from "@/lib/whatsapp";
 
 // ==========================================
 // 1. مكون المرحلة الأولى: طور المعالجة (Processing)
@@ -369,12 +370,30 @@ function OrderCard({ order, isSelected, onToggle, handleCopyCoupon, orderSource,
               ) : (
                 <>
                   <p><strong>الاسم:</strong> {order.guestDetails?.name}</p>
-                  <p className="flex items-center gap-1 justify-end">
-                    <a href={`tel:${order.guestDetails?.phone}`} className="text-primary hover:underline font-mono">
-                      {order.guestDetails?.phone}
-                    </a>
-                    <strong> :الهاتف</strong> 
-                  </p>
+                  <div className="flex items-center justify-between gap-2 border-y border-neutral-100 dark:border-neutral-800/60 py-1.5 my-1">
+                    {order.guestDetails?.phone && (
+                      <a
+                        href={getAdminToCustomerWhatsAppUrl(
+                          order.guestDetails.phone,
+                          order.guestDetails.name,
+                          order.orderNumber
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all text-[11px] font-bold"
+                        title="محادثة واتساب مباشرة مع الزبون لتأكيد الطلب"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        <span>محادثة واتساب 💬</span>
+                      </a>
+                    )}
+                    <p className="flex items-center gap-1 font-mono text-xs">
+                      <a href={`tel:${order.guestDetails?.phone}`} className="text-primary hover:underline">
+                        {order.guestDetails?.phone}
+                      </a>
+                      <strong className="font-sans">:الهاتف</strong>
+                    </p>
+                  </div>
                   <p><strong>المدينة:</strong> {order.guestDetails?.city}</p>
                   <p><strong>العنوان السكني:</strong> {order.guestDetails?.address}</p>
                   {order.guestDetails?.notes && (

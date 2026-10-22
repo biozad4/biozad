@@ -8,7 +8,9 @@ import { validateCouponCode } from "@/app/actions/coupons";
 import { useToastStore } from "@/store/useToastStore";
 import { PremiumButton } from "../ui/premium-button";
 import { PremiumCard } from "../ui/premium-card";
-import { Truck, CheckCircle2, AlertCircle, ShoppingBag } from "lucide-react";
+import { Truck, CheckCircle2, AlertCircle, ShoppingBag, MessageCircle } from "lucide-react";
+import * as pixel from "@/lib/pixel";
+import { getWhatsAppOrderUrl } from "@/lib/whatsapp";
 
 const MOROCCAN_CITIES = [
   { ar: "الدار البيضاء", fr: "Casablanca" },
@@ -59,6 +61,7 @@ export function CheckoutForm({ settings }: CheckoutFormProps) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successOrderNum, setSuccessOrderNum] = useState("");
+  const [successWaUrl, setSuccessWaUrl] = useState("");
 
   // حالات الكوبونات لكل منتج
   const [couponInputs, setCouponInputs] = useState<Record<string, string>>({});
@@ -172,8 +175,43 @@ export function CheckoutForm({ settings }: CheckoutFormProps) {
 
     const res = await createOrder(payload);
 
-    if (res.success) {
-      setSuccessOrderNum(res.orderNumber || "");
+    if (res.success && res.orderNumber) {
+      const orderNum = res.orderNumber;
+      setSuccessOrderNum(orderNum);
+
+      // توليد رسالة الواتساب الشاملة لمسؤول المتجر
+      const waUrl = getWhatsAppOrderUrl({
+        orderNumber: orderNum,
+        customerName: formData.name.trim(),
+        phone: formData.phone.trim(),
+        city: formData.city,
+        address: formData.address,
+        notes: formData.notes,
+        items: items.map((i) => ({
+          title: i.title[lang] || i.title.ar,
+          quantity: i.quantity,
+          price: i.price,
+        })),
+        total: total,
+      });
+      setSuccessWaUrl(waUrl);
+
+      // فتح محادثة الواتساب تلقائياً في نافذة جديدة
+      if (typeof window !== "undefined") {
+        try {
+          window.open(waUrl, "_blank");
+        } catch (e) {
+          console.warn("Could not auto-open WhatsApp:", e);
+        }
+      }
+
+      // تتبع أحداث فيسبوك بيكسل
+      pixel.trackPurchase(total, "MAD", {
+        order_id: orderNum,
+        num_items: items.length,
+      });
+      pixel.trackLead(total, "MAD", { order_id: orderNum });
+
       clearCart();
     } else {
       if (res.errors) {
@@ -189,7 +227,7 @@ export function CheckoutForm({ settings }: CheckoutFormProps) {
   if (successOrderNum) {
     return (
       <div className="mx-auto max-w-xl px-4 py-20 text-center space-y-6">
-        <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-primary/10 text-primary dark:text-accent mb-4">
+        <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 mb-2">
           <CheckCircle2 className="h-10 w-10 animate-bounce" />
         </div>
         <h2 className="font-serif text-3xl font-bold text-neutral-900 dark:text-white">
@@ -197,8 +235,8 @@ export function CheckoutForm({ settings }: CheckoutFormProps) {
         </h2>
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
           {lang === "ar" 
-            ? "تم استلام طلبك بنجاح وسيتواصل معك فريق الدعم لتأكيد الشحن خلال بضع ساعات." 
-            : "Votre commande a été reçue avec succès. Notre équipe vous contactera sous peu pour confirmation."}
+            ? "تم استلام وتسجيل طلبك بنجاح، وفتح محادثة الواتساب لتأكيد الشحن فوراً." 
+            : "Votre commande a été reçue avec succès. Confirmez-la directement sur WhatsApp."}
         </p>
         <div className="bg-[#FAF9F6] dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 p-5 rounded-2xl">
           <span className="block text-xs text-neutral-400 uppercase tracking-widest">
@@ -208,11 +246,25 @@ export function CheckoutForm({ settings }: CheckoutFormProps) {
             {successOrderNum}
           </span>
         </div>
-        <a href="/" className="inline-block mt-4">
-          <PremiumButton variant="primary">
-            {lang === "ar" ? "العودة لتصفح المتجر" : "Retour au magasin"}
-          </PremiumButton>
-        </a>
+
+        <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-2">
+          {successWaUrl && (
+            <a
+              href={successWaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white font-extrabold text-sm shadow-xl shadow-[#25D366]/30 transition-all active:scale-95 animate-pulse"
+            >
+              <MessageCircle className="h-5 w-5" />
+              <span>{lang === "ar" ? "تأكيد طلبيتي فوراً عبر الواتساب 💬" : "Confirmer via WhatsApp 💬"}</span>
+            </a>
+          )}
+          <a href="/" className="w-full sm:w-auto inline-block">
+            <PremiumButton variant="outline" className="w-full">
+              {lang === "ar" ? "العودة لتصفح المتجر" : "Retour au magasin"}
+            </PremiumButton>
+          </a>
+        </div>
       </div>
     );
   }

@@ -100,6 +100,7 @@ export default function AdminPage() {
     shippingCost: "40",
     freeShippingMin: "400",
     isFreeShippingGlobally: false,
+    whatsappNumber: "212600000000",
   });
   const [shippingLoading, setShippingLoading] = useState(false);
 
@@ -110,6 +111,7 @@ export default function AdminPage() {
         shippingCost: res.settings.shippingCost.toString(),
         freeShippingMin: res.settings.freeShippingMin.toString(),
         isFreeShippingGlobally: res.settings.isFreeShippingGlobally === true,
+        whatsappNumber: res.settings.whatsappNumber || "212600000000",
       });
     }
   };
@@ -121,6 +123,7 @@ export default function AdminPage() {
       shippingCost: shippingForm.shippingCost,
       freeShippingMin: shippingForm.freeShippingMin,
       isFreeShippingGlobally: shippingForm.isFreeShippingGlobally,
+      whatsappNumber: shippingForm.whatsappNumber,
     });
 
     if (res.success) {
@@ -130,10 +133,11 @@ export default function AdminPage() {
           shippingCost: res.settings.shippingCost.toString(),
           freeShippingMin: res.settings.freeShippingMin.toString(),
           isFreeShippingGlobally: res.settings.isFreeShippingGlobally === true,
+          whatsappNumber: res.settings.whatsappNumber || "212600000000",
         });
       }
     } else {
-      showToast(res.message || "حدث خطأ أثناء حفظ إعدادات الشحن", "error");
+      showToast(res.message || "حدث خطأ أثناء حفظ إعدادات المتجر", "error");
     }
     setShippingLoading(false);
   };
@@ -819,8 +823,8 @@ export default function AdminPage() {
           {/* إعدادات كلفة الشحن والتوصيل المجاني */}
           <PremiumCard hoverEffect={false} className="p-6 space-y-6 mt-6">
             <div className="space-y-1">
-              <h3 className="font-serif text-lg font-bold text-neutral-900">إعدادات كلفة الشحن والتوصيل المجاني</h3>
-              <p className="text-xs text-neutral-400">تحكم في كلفة شحن الطلبات والعتبة المالية للحصول على شحن مجاني تلقائياً.</p>
+              <h3 className="font-serif text-lg font-bold text-neutral-900">إعدادات الشحن والتوصيل ورقم واتساب الطلبيات</h3>
+              <p className="text-xs text-neutral-400">تحكم في كلفة الشحن، العتبة المالية للشحن المجاني، ورقم الواتساب الذي يستقبل رسائل الطلبيات فوراً.</p>
             </div>
 
             <form onSubmit={handleSaveShipping} className="space-y-4">
@@ -849,6 +853,24 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {/* رقم الواتساب لصاحب المتجر */}
+              <div className="space-y-1.5 border-t pt-4">
+                <label className="text-neutral-700 dark:text-neutral-300 font-bold flex items-center gap-1.5 text-xs">
+                  <span>رقم واتساب المتجر لتحويل الطلبيات إليه مباشرة (WhatsApp صاحب المحل) *</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={shippingForm.whatsappNumber}
+                  onChange={(e) => setShippingForm({ ...shippingForm, whatsappNumber: e.target.value })}
+                  className="w-full border rounded-xl p-3 font-mono text-xs"
+                  placeholder="مثال: 212600000000 أو 0612345678"
+                />
+                <p className="text-[10px] text-neutral-400">
+                  سيتم تحويل جميع تفاصيل الطلبيات الجديدة من صفحات الهبوط والمتجر مباشرة إلى هذا الرقم على واتساب بمجرد نقر الزبون على إتمام الطلب.
+                </p>
+              </div>
+
               <div className="flex items-center gap-2 border-t pt-4">
                 <input
                   type="checkbox"
@@ -864,7 +886,7 @@ export default function AdminPage() {
 
               <div className="flex justify-end pt-2">
                 <PremiumButton type="submit" loading={shippingLoading} variant="primary" className="px-10 py-3.5 text-xs">
-                  حفظ إعدادات الشحن والتوصيل
+                  حفظ إعدادات المتجر ورقم الواتساب
                 </PremiumButton>
               </div>
             </form>

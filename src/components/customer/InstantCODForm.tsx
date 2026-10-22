@@ -6,6 +6,7 @@ import { useToastStore } from "@/store/useToastStore";
 import { PremiumButton } from "../ui/premium-button";
 import { CheckCircle2, Truck, ShieldCheck, Phone, User, MapPin, FileText, Sparkles, MessageCircle } from "lucide-react";
 import * as pixel from "@/lib/pixel";
+import { getWhatsAppOrderUrl } from "@/lib/whatsapp";
 
 export const MOROCCAN_CITIES = [
   "الدار البيضاء (Casablanca)",
@@ -128,6 +129,33 @@ export function InstantCODForm({
       const orderNum = res.orderNumber;
       setSuccessOrderNum(orderNum);
 
+      // توليد رابط الواتساب المحتوي على الرسالة المنسقة الشاملة
+      const waUrl = getWhatsAppOrderUrl({
+        orderNumber: orderNum,
+        customerName: name.trim(),
+        phone: cleanPhone,
+        city: finalCity,
+        address: address.trim(),
+        notes: notes.trim(),
+        items: [
+          {
+            title: `${productTitle} (${selectedOffer.title})`,
+            quantity: selectedOffer.quantity || 1,
+            price: selectedOffer.price,
+          },
+        ],
+        total: selectedOffer.price,
+      });
+
+      // فتح محادثة الواتساب تلقائياً في نافذة جديدة
+      if (typeof window !== "undefined") {
+        try {
+          window.open(waUrl, "_blank");
+        } catch (e) {
+          console.warn("Could not auto-open WhatsApp popup:", e);
+        }
+      }
+
       // إطلاق أحداث فيسبوك بيكسل (Purchase & Lead)
       pixel.trackPurchase(selectedOffer.price, "MAD", {
         content_name: productTitle,
@@ -143,7 +171,7 @@ export function InstantCODForm({
       if (onSuccess) {
         onSuccess(orderNum);
       }
-      showToast("🎉 تم تسجيل طلبك بنجاح! شكراً لثقتك.", "success");
+      showToast("🎉 تم تسجيل طلبك بنجاح! تم تجهيز محادثة الواتساب لتأكيد الشحن.", "success");
     } else {
       if (res.errors) {
         const firstError = Object.values(res.errors)[0] as string[];
@@ -157,10 +185,22 @@ export function InstantCODForm({
   };
 
   if (successOrderNum) {
-    const waText = encodeURIComponent(
-      `السلام عليكم فريق BioZad، لقد قمت بطلب ${productTitle} (${selectedOffer.title}) برقم الطلب: ${successOrderNum}. أرجو تأكيد الشحن.`
-    );
-    const waLink = `https://wa.me/212600000000?text=${waText}`;
+    const waUrl = getWhatsAppOrderUrl({
+      orderNumber: successOrderNum,
+      customerName: name.trim(),
+      phone: phone.trim(),
+      city: finalCity,
+      address: address.trim(),
+      notes: notes.trim(),
+      items: [
+        {
+          title: `${productTitle} (${selectedOffer.title})`,
+          quantity: selectedOffer.quantity || 1,
+          price: selectedOffer.price,
+        },
+      ],
+      total: selectedOffer.price,
+    });
 
     return (
       <div className="bg-white dark:bg-neutral-900 border-2 border-emerald-500/40 rounded-3xl p-6 sm:p-10 text-center space-y-6 shadow-premium-lg">
@@ -177,7 +217,7 @@ export function InstantCODForm({
             شكراً لثقتك بمنتجات BioZad الأصيلة
           </h3>
           <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 max-w-md mx-auto leading-relaxed">
-            سيتصل بك فريق خدمة العملاء هاتفياً أو عبر الواتساب خلال ساعات قليلة لتأكيد العنوان وشحن طردك فورا.
+            تم فتح محادثة الواتساب لتأكيد طلبك مباشرة مع مسؤول الشحن، أو يمكنك الضغط على الزر أدناه:
           </p>
         </div>
 
@@ -195,17 +235,17 @@ export function InstantCODForm({
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center items-center pt-2">
           <a
-            href={waLink}
+            href={waUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs shadow-md transition-all active:scale-95"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-[#25D366]/30 transition-all active:scale-95 animate-pulse"
           >
-            <MessageCircle className="h-4 w-4" />
-            <span>تأكيد أسرع عبر الواتساب</span>
+            <MessageCircle className="h-5 w-5" />
+            <span>تأكيد طلبيتي فوراً عبر الواتساب 💬</span>
           </a>
           <a
             href="/"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold text-xs transition-all"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 font-bold text-xs transition-all"
           >
             <span>تصفح الموقع الرئيسي</span>
           </a>

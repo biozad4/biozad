@@ -3,7 +3,7 @@
 import { supabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 
-// 1. جلب إعدادات المتجر العامة (الشحن والتوصيل)
+// 1. جلب إعدادات المتجر العامة (الشحن والتوصيل والواتساب)
 export async function getStoreSettings() {
   try {
     const { data: settings, error } = await supabase
@@ -19,6 +19,7 @@ export async function getStoreSettings() {
           shippingCost: 40,
           freeShippingMin: 400,
           isFreeShippingGlobally: false,
+          whatsappNumber: "212600000000",
         },
       };
     }
@@ -30,6 +31,7 @@ export async function getStoreSettings() {
         shippingCost: Number(settings.shipping_cost),
         freeShippingMin: Number(settings.free_shipping_min),
         isFreeShippingGlobally: settings.is_free_shipping_globally,
+        whatsappNumber: settings.whatsapp_number || "212600000000",
       },
     };
   } catch (error: any) {
@@ -38,15 +40,16 @@ export async function getStoreSettings() {
   }
 }
 
-// 2. حفظ وتعديل إعدادات الشحن والتوصيل من الداشبورد
+// 2. حفظ وتعديل إعدادات الشحن والتوصيل والواتساب من الداشبورد
 export async function saveStoreSettings(data: any) {
   try {
-    const { shippingCost, freeShippingMin, isFreeShippingGlobally } = data;
+    const { shippingCost, freeShippingMin, isFreeShippingGlobally, whatsappNumber } = data;
 
     const payload = {
       shipping_cost: Number(shippingCost),
       free_shipping_min: Number(freeShippingMin),
       is_free_shipping_globally: isFreeShippingGlobally === true,
+      whatsapp_number: (whatsappNumber || "212600000000").trim(),
       updated_at: new Date().toISOString(),
     };
 
@@ -81,12 +84,13 @@ export async function saveStoreSettings(data: any) {
 
     return { 
       success: true, 
-      message: "✓ تم حفظ وتحديث إعدادات الشحن والتوصيل بنجاح!", 
+      message: "✓ تم حفظ وتحديث إعدادات المتجر ورقم الواتساب بنجاح!", 
       settings: {
         _id: saved.id,
         shippingCost: Number(saved.shipping_cost),
         freeShippingMin: Number(saved.free_shipping_min),
         isFreeShippingGlobally: saved.is_free_shipping_globally,
+        whatsappNumber: saved.whatsapp_number || "212600000000",
       } 
     };
   } catch (error: any) {

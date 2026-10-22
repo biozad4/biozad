@@ -8,7 +8,7 @@ import { useFlyToCart } from "@/store/useFlyToCart";
 import { useToastStore } from "@/store/useToastStore";
 import { PremiumButton } from "../ui/premium-button";
 import { PremiumCard } from "../ui/premium-card";
-import { ShoppingCart, Star, Copy, Check, Info, ArrowRight, ShieldCheck, Truck } from "lucide-react";
+import { ShoppingCart, Star, Copy, Check, Info, ArrowRight, ShieldCheck, Truck, MessageCircle } from "lucide-react";
 
 interface ProductDetailsProps {
   product: {
@@ -234,27 +234,39 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           )}
 
           {/* الأزرار التفاعلية للإجراءات */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3">
             {/* زر الإضافة للسلة */}
             <PremiumButton
               onClick={handleAddToCart}
               variant="primary"
-              className="flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 shadow-premium-md"
+              className="flex-1 py-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-premium-md"
             >
               <ShoppingCart className="h-5 w-5" />
               <span>{lang === "ar" ? "أضف هذا المنتج إلى السلة" : "Ajouter au Panier"}</span>
             </PremiumButton>
 
+            {/* زر طلب مباشر عبر الواتساب */}
+            <a
+              href={`https://wa.me/212600000000?text=${encodeURIComponent(
+                `السلام عليكم متجر BioZad، أود طلب منتج: ${product.title.ar} ${hasVariants ? `(${product.variants![selectedVariantIdx].weight})` : ""} بسعر ${currentPrice} د.م. أرجو تزويدي بتفاصيل الشحن والتوصيل.`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-5 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl bg-[#25D366] hover:bg-[#20ba59] text-white font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+            >
+              <MessageCircle className="h-4 w-4" />
+              <span>{lang === "ar" ? "طلب فوري بالواتساب" : "Commander via WhatsApp"}</span>
+            </a>
+
             {/* زر معرف المنتج (ID) ونسخه */}
             <button
               onClick={handleCopyId}
-              className="px-6 py-4 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 text-xs font-semibold text-neutral-600 dark:text-neutral-300 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="px-4 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 text-xs font-semibold text-neutral-600 dark:text-neutral-300 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
               title={lang === "ar" ? "نسخ معرف المنتج الفريد" : "Copier l'ID du produit"}
             >
               {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-              <span>{lang === "ar" ? "معرّف المنتج (ID)" : "ID du Produit"}</span>
-              <span className="font-mono text-[10px] bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded text-neutral-400">
-                {product._id.substring(0, 8)}...
+              <span className="font-mono text-[10px] text-neutral-400">
+                {product._id.substring(0, 6)}...
               </span>
             </button>
           </div>
