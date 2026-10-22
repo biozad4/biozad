@@ -14,10 +14,11 @@ import { PremiumCard } from "@/components/ui/premium-card";
 import { PremiumButton } from "@/components/ui/premium-button";
 import { BundleManagement } from "@/components/admin/BundleManagement";
 import { MultiImageUploader } from "@/components/admin/MultiImageUploader";
-import { Plus, Pencil, Trash2, LayoutDashboard, PackagePlus, RefreshCw, Award, Image, AlignLeft, Sparkles, Package } from "lucide-react";
+import { LandingPageBuilder } from "@/components/admin/LandingPageBuilder";
+import { Plus, Pencil, Trash2, LayoutDashboard, PackagePlus, RefreshCw, Award, Image, AlignLeft, Sparkles, Package, Flame } from "lucide-react";
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "products" | "bundle" | "inventory" | "coupons" | "orders">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "products" | "bundle" | "landing" | "inventory" | "coupons" | "orders">("dashboard");
   const [products, setProducts] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -396,6 +397,10 @@ export default function AdminPage() {
             <Sparkles className="h-4 w-4" />
             <span>إدارة وعروض الباقات</span>
           </button>
+          <button onClick={() => setActiveTab("landing")} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === "landing" ? "bg-primary text-white" : "text-neutral-500 hover:bg-neutral-50"}`}>
+            <Flame className="h-4 w-4" />
+            <span>صفحات الهبوط (Ads)</span>
+          </button>
           <button onClick={() => setActiveTab("inventory")} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === "inventory" ? "bg-primary text-white" : "text-neutral-500 hover:bg-neutral-50"}`}>
             <RefreshCw className="h-4 w-4" />
             <span>المخزن وحركة البضائع</span>
@@ -414,6 +419,11 @@ export default function AdminPage() {
       {activeTab === "dashboard" && <DashboardOverview />}
       {activeTab === "inventory" && <InventoryManagement />}
       {activeTab === "orders" && <OrdersManagement />}
+      {activeTab === "landing" && (
+        <div className="p-4 sm:p-8">
+          <LandingPageBuilder products={products} />
+        </div>
+      )}
 
       {/* 2. تبويب إدارة المنتجات والأوزان (CRUD) */}
       {activeTab === "products" && (

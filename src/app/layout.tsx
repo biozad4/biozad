@@ -7,6 +7,7 @@ import { PremiumToast } from "@/components/ui/premium-toast";
 import { Footer } from "@/components/shared/Footer";
 
 import { FlyToCartOverlay } from "@/components/customer/FlyToCartOverlay";
+import { FacebookPixel } from "@/components/shared/FacebookPixel";
 
 export const metadata: Metadata = {
   title: "BioZad | منتجات مغربية طبيعية فاخرة",
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body className="antialiased bg-background text-foreground transition-colors duration-300 min-h-screen flex flex-col">
         {/* تغليف كامل للموقع لتمرير بيانات الجلسة بأمان */}
         <SessionProvider>
+          <FacebookPixel />
           <Header />
           <CartDrawer />
           <FlyToCartOverlay />
