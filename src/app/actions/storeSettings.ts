@@ -2,6 +2,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
+import { normalizeWhatsAppPhone, DEFAULT_WHATSAPP_NUMBER } from "@/lib/whatsapp";
 
 // 1. جلب إعدادات المتجر العامة (الشحن والتوصيل والواتساب)
 export async function getStoreSettings() {
@@ -19,7 +20,7 @@ export async function getStoreSettings() {
           shippingCost: 40,
           freeShippingMin: 400,
           isFreeShippingGlobally: false,
-          whatsappNumber: "212600000000",
+          whatsappNumber: DEFAULT_WHATSAPP_NUMBER,
         },
       };
     }
@@ -31,7 +32,7 @@ export async function getStoreSettings() {
         shippingCost: Number(settings.shipping_cost),
         freeShippingMin: Number(settings.free_shipping_min),
         isFreeShippingGlobally: settings.is_free_shipping_globally,
-        whatsappNumber: settings.whatsapp_number || "212600000000",
+        whatsappNumber: settings.whatsapp_number ? normalizeWhatsAppPhone(settings.whatsapp_number) : DEFAULT_WHATSAPP_NUMBER,
       },
     };
   } catch (error: any) {
@@ -45,11 +46,13 @@ export async function saveStoreSettings(data: any) {
   try {
     const { shippingCost, freeShippingMin, isFreeShippingGlobally, whatsappNumber } = data;
 
+    const normalizedPhone = normalizeWhatsAppPhone(whatsappNumber || DEFAULT_WHATSAPP_NUMBER);
+
     const payload = {
       shipping_cost: Number(shippingCost),
       free_shipping_min: Number(freeShippingMin),
       is_free_shipping_globally: isFreeShippingGlobally === true,
-      whatsapp_number: (whatsappNumber || "212600000000").trim(),
+      whatsapp_number: normalizedPhone,
       updated_at: new Date().toISOString(),
     };
 
@@ -79,6 +82,7 @@ export async function saveStoreSettings(data: any) {
       saved = data;
     }
 
+    revalidatePath("/", "layout");
     revalidatePath("/checkout");
     revalidatePath("/admin");
 
@@ -90,7 +94,7 @@ export async function saveStoreSettings(data: any) {
         shippingCost: Number(saved.shipping_cost),
         freeShippingMin: Number(saved.free_shipping_min),
         isFreeShippingGlobally: saved.is_free_shipping_globally,
-        whatsappNumber: saved.whatsapp_number || "212600000000",
+        whatsappNumber: saved.whatsapp_number ? normalizeWhatsAppPhone(saved.whatsapp_number) : DEFAULT_WHATSAPP_NUMBER,
       } 
     };
   } catch (error: any) {

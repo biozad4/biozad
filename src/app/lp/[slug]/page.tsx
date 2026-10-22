@@ -1,4 +1,5 @@
 import { getLandingPageBySlug } from "@/app/actions/landing";
+import { getStoreSettings } from "@/app/actions/storeSettings";
 import { notFound } from "next/navigation";
 import { LandingPageView } from "@/components/customer/LandingPageView";
 import { Metadata } from "next";
@@ -36,11 +37,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function LandingPageDynamicRoute({ params }: PageProps) {
   const { slug } = await params;
-  const page = await getLandingPageBySlug(slug);
+  const [page, settingsRes] = await Promise.all([
+    getLandingPageBySlug(slug),
+    getStoreSettings(),
+  ]);
 
   if (!page || (!page.isActive && process.env.NODE_ENV === "production")) {
     notFound();
   }
+
+  const whatsappNumber = settingsRes.success && settingsRes.settings?.whatsappNumber
+    ? settingsRes.settings.whatsappNumber
+    : "212602732533";
 
   const pixelId = page.hero?.facebookPixelId || process.env.NEXT_PUBLIC_FACEBOOK_PIXEL_ID || "";
 
@@ -77,7 +85,7 @@ export default async function LandingPageDynamicRoute({ params }: PageProps) {
           </noscript>
         </>
       )}
-      <LandingPageView page={page} />
+      <LandingPageView page={page} whatsappNumber={whatsappNumber} />
     </>
   );
 }

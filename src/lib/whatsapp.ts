@@ -2,14 +2,14 @@
  * أدوات توليد روابط ورسائل الواتساب الأوتوماتيكية لطلبيات BioZad
  */
 
-export const DEFAULT_WHATSAPP_NUMBER = "212600000000";
+export const DEFAULT_WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "212602732533";
 
 /**
  * تنظيف وتنسيق رقم الهاتف ليتوافق مع المعيار الدولي للواتساب
  * تحويل 0612345678 أو 0712345678 إلى 212612345678
  */
-export function normalizeWhatsAppPhone(phone: string): string {
-  if (!phone) return DEFAULT_WHATSAPP_NUMBER;
+export function normalizeWhatsAppPhone(phone?: string): string {
+  if (!phone || !phone.trim()) return process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || DEFAULT_WHATSAPP_NUMBER;
   let clean = phone.replace(/[^0-9+]/g, "").trim();
 
   if (clean.startsWith("+")) {
@@ -21,7 +21,7 @@ export function normalizeWhatsAppPhone(phone: string): string {
     clean = "212" + clean.substring(1);
   }
 
-  return clean;
+  return clean || (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || DEFAULT_WHATSAPP_NUMBER);
 }
 
 export interface OrderWhatsAppDetails {

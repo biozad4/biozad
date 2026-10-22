@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { createOrder } from "@/app/actions/orders";
 import { useToastStore } from "@/store/useToastStore";
 import { PremiumButton } from "../ui/premium-button";
@@ -59,6 +59,7 @@ interface InstantCODFormProps {
   selectedOffer: SelectedOffer;
   landingPageTitle: string;
   pixelId?: string;
+  whatsappNumber?: string;
   onSuccess?: (orderNumber: string) => void;
 }
 
@@ -68,6 +69,7 @@ export function InstantCODForm({
   selectedOffer,
   landingPageTitle,
   pixelId,
+  whatsappNumber,
   onSuccess,
 }: InstantCODFormProps) {
   const { showToast } = useToastStore();
@@ -75,6 +77,15 @@ export function InstantCODForm({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successOrderNum, setSuccessOrderNum] = useState("");
+  const [activeWhatsApp, setActiveWhatsApp] = useState<string>(
+    whatsappNumber || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "212602732533"
+  );
+
+  useEffect(() => {
+    if (whatsappNumber) {
+      setActiveWhatsApp(whatsappNumber);
+    }
+  }, [whatsappNumber]);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -127,6 +138,8 @@ export function InstantCODForm({
 
     if (res.success && res.orderNumber) {
       const orderNum = res.orderNumber;
+      const targetPhone = (res as any).whatsappNumber || activeWhatsApp || whatsappNumber || "212602732533";
+      setActiveWhatsApp(targetPhone);
       setSuccessOrderNum(orderNum);
 
       // توليد رابط الواتساب المحتوي على الرسالة المنسقة الشاملة
@@ -145,7 +158,7 @@ export function InstantCODForm({
           },
         ],
         total: selectedOffer.price,
-      });
+      }, targetPhone);
 
       // فتح محادثة الواتساب تلقائياً في نافذة جديدة
       if (typeof window !== "undefined") {
@@ -185,6 +198,7 @@ export function InstantCODForm({
   };
 
   if (successOrderNum) {
+    const targetPhone = activeWhatsApp || whatsappNumber || "212602732533";
     const waUrl = getWhatsAppOrderUrl({
       orderNumber: successOrderNum,
       customerName: name.trim(),
@@ -200,7 +214,7 @@ export function InstantCODForm({
         },
       ],
       total: selectedOffer.price,
-    });
+    }, targetPhone);
 
     return (
       <div className="bg-white dark:bg-neutral-900 border-2 border-emerald-500/40 rounded-3xl p-6 sm:p-10 text-center space-y-6 shadow-premium-lg">

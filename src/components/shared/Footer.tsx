@@ -125,7 +125,15 @@ export function Footer() {
             <ul className="space-y-3 text-xs">
               <li className="flex items-center gap-2.5">
                 <Phone className="h-4 w-4 text-accent shrink-0" />
-                <span className="font-mono text-neutral-500">+212 600 000 000</span>
+                <a
+                  href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "212602732533"}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-neutral-500 hover:text-emerald-600 transition-colors"
+                  dir="ltr"
+                >
+                  +212 602-732533
+                </a>
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="h-4 w-4 text-accent shrink-0" />

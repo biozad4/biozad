@@ -9,6 +9,7 @@ import { useToastStore } from "@/store/useToastStore";
 import { PremiumButton } from "../ui/premium-button";
 import { PremiumCard } from "../ui/premium-card";
 import { ShoppingCart, Star, Copy, Check, Info, ArrowRight, ShieldCheck, Truck, MessageCircle } from "lucide-react";
+import { normalizeWhatsAppPhone, DEFAULT_WHATSAPP_NUMBER } from "@/lib/whatsapp";
 
 interface ProductDetailsProps {
   product: {
@@ -247,7 +248,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
 
             {/* زر طلب مباشر عبر الواتساب */}
             <a
-              href={`https://wa.me/212600000000?text=${encodeURIComponent(
+              href={`https://wa.me/${normalizeWhatsAppPhone(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || DEFAULT_WHATSAPP_NUMBER)}?text=${encodeURIComponent(
                 `السلام عليكم متجر BioZad، أود طلب منتج: ${product.title.ar} ${hasVariants ? `(${product.variants![selectedVariantIdx].weight})` : ""} بسعر ${currentPrice} د.م. أرجو تزويدي بتفاصيل الشحن والتوصيل.`
               )}`}
               target="_blank"

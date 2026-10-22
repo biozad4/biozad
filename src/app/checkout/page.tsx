@@ -8,7 +8,7 @@ export default async function CheckoutPage() {
   const res = await getStoreSettings();
   const settings = res.success && res.settings 
     ? res.settings 
-    : { shippingCost: 40, freeShippingMin: 400, isFreeShippingGlobally: false };
+    : { shippingCost: 40, freeShippingMin: 400, isFreeShippingGlobally: false, whatsappNumber: "212602732533" };
 
   return (
     <main className="bg-[#FAF9F6] dark:bg-neutral-950 min-h-screen py-12">

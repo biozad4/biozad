@@ -23,9 +23,10 @@ import {
 
 interface LandingPageViewProps {
   page: any;
+  whatsappNumber?: string;
 }
 
-export function LandingPageView({ page }: LandingPageViewProps) {
+export function LandingPageView({ page, whatsappNumber }: LandingPageViewProps) {
   const hero = page.hero || {};
   const offersList = Array.isArray(hero.offers) && hero.offers.length > 0
     ? hero.offers
@@ -356,6 +357,7 @@ export function LandingPageView({ page }: LandingPageViewProps) {
                 selectedOffer={selectedOffer}
                 landingPageTitle={page.title}
                 pixelId={hero.facebookPixelId}
+                whatsappNumber={whatsappNumber}
               />
             </div>
 

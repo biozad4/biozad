@@ -43,7 +43,7 @@ export async function createOrder(rawData: any) {
     const settingsRes = await getStoreSettings();
     const settings = settingsRes.success && settingsRes.settings 
       ? settingsRes.settings 
-      : { shippingCost: 40, freeShippingMin: 400, isFreeShippingGlobally: false };
+      : { shippingCost: 40, freeShippingMin: 400, isFreeShippingGlobally: false, whatsappNumber: "212602732533" };
 
     const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
     const shippingCost = settings.isFreeShippingGlobally
@@ -156,7 +156,11 @@ export async function createOrder(rawData: any) {
       }
     }
 
-    return { success: true, orderNumber };
+    return { 
+      success: true, 
+      orderNumber,
+      whatsappNumber: settings.whatsappNumber || "212602732533" 
+    };
   } catch (error: any) {
     console.error("Checkout process error:", error);
     return { success: false, message: `حدث خطأ أثناء المعالجة: ${error.message || "Erreur système"}` };

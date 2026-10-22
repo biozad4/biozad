@@ -9,6 +9,7 @@ import { getAdminCoupons, createAdminCoupon, deleteAdminCoupon } from "@/app/act
 import { getFeaturedBundleSettings, saveFeaturedBundleSettings } from "@/app/actions/featuredBundle";
 import { uploadImageToCloudinary } from "@/app/actions/upload";
 import { getStoreSettings, saveStoreSettings } from "@/app/actions/storeSettings";
+import { DEFAULT_WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { useToastStore } from "@/store/useToastStore";
 import { PremiumCard } from "@/components/ui/premium-card";
 import { PremiumButton } from "@/components/ui/premium-button";
@@ -100,7 +101,7 @@ export default function AdminPage() {
     shippingCost: "40",
     freeShippingMin: "400",
     isFreeShippingGlobally: false,
-    whatsappNumber: "212600000000",
+    whatsappNumber: DEFAULT_WHATSAPP_NUMBER,
   });
   const [shippingLoading, setShippingLoading] = useState(false);
 
@@ -111,7 +112,7 @@ export default function AdminPage() {
         shippingCost: res.settings.shippingCost.toString(),
         freeShippingMin: res.settings.freeShippingMin.toString(),
         isFreeShippingGlobally: res.settings.isFreeShippingGlobally === true,
-        whatsappNumber: res.settings.whatsappNumber || "212600000000",
+        whatsappNumber: res.settings.whatsappNumber || DEFAULT_WHATSAPP_NUMBER,
       });
     }
   };
@@ -133,7 +134,7 @@ export default function AdminPage() {
           shippingCost: res.settings.shippingCost.toString(),
           freeShippingMin: res.settings.freeShippingMin.toString(),
           isFreeShippingGlobally: res.settings.isFreeShippingGlobally === true,
-          whatsappNumber: res.settings.whatsappNumber || "212600000000",
+          whatsappNumber: res.settings.whatsappNumber || DEFAULT_WHATSAPP_NUMBER,
         });
       }
     } else {

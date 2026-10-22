@@ -43,6 +43,7 @@ interface CheckoutFormProps {
     shippingCost: number;
     freeShippingMin: number;
     isFreeShippingGlobally: boolean;
+    whatsappNumber?: string;
   };
 }
 
@@ -179,6 +180,8 @@ export function CheckoutForm({ settings }: CheckoutFormProps) {
       const orderNum = res.orderNumber;
       setSuccessOrderNum(orderNum);
 
+      const targetPhone = (res as any).whatsappNumber || settings?.whatsappNumber || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "212602732533";
+
       // توليد رسالة الواتساب الشاملة لمسؤول المتجر
       const waUrl = getWhatsAppOrderUrl({
         orderNumber: orderNum,
@@ -193,7 +196,7 @@ export function CheckoutForm({ settings }: CheckoutFormProps) {
           price: i.price,
         })),
         total: total,
-      });
+      }, targetPhone);
       setSuccessWaUrl(waUrl);
 
       // فتح محادثة الواتساب تلقائياً في نافذة جديدة
