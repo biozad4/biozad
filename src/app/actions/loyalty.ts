@@ -1,59 +1,57 @@
 "use server";
 
-import { connectDB } from "@/lib/db";
-import { User } from "@/models/User";
-import { Coupon } from "@/models/Coupon";
+import { supabase, query as pgQuery } from "@/lib/supabase";
 import { auth } from "@/lib/auth";
 
 export async function exchangePointsForCoupon() {
   try {
-    await connectDB();
-
-    // التحقق من جلسة العميل الحالي بأمان
     const session = await auth();
     if (!session || !session.user) {
       return { success: false, message: "الرجاء تسجيل الدخول أولاً للوصول للنقاط" };
     }
 
     const userId = (session.user as any).id;
-    const user = await User.findById(userId);
+    const { data: user } = await supabase
+      .from("users")
+      .select("id, loyalty_points")
+      .eq("id", userId)
+      .maybeSingle();
 
     if (!user) {
       return { success: false, message: "لم يتم العثور على حساب العميل" };
     }
 
-    const POINTS_REQUIRED = 100; // تكلفة استبدال الكوبون بالنقاط
-    const COUPON_VALUE = 50; // قيمة الخصم بالدرهم المغربي
+    const POINTS_REQUIRED = 100;
+    const COUPON_VALUE = 50;
 
-    if (user.loyaltyPoints < POINTS_REQUIRED) {
+    const currentPoints = user.loyalty_points || 0;
+    if (currentPoints < POINTS_REQUIRED) {
       return { 
         success: false, 
-        message: `نقاطك الحالية (${user.loyaltyPoints}) غير كافية. تحتاج إلى ${POINTS_REQUIRED} نقطة كحد أدنى.` 
+        message: `نقاطك الحالية (${currentPoints}) غير كافية. تحتاج إلى ${POINTS_REQUIRED} نقطة كحد أدنى.` 
       };
     }
 
-    // خصم النقاط من حساب العميل وحفظ التحديث
-    user.loyaltyPoints -= POINTS_REQUIRED;
-    await user.save();
+    // خصم النقاط
+    const newPoints = currentPoints - POINTS_REQUIRED;
+    await pgQuery("UPDATE users SET loyalty_points = $1 WHERE id = $2", [newPoints, userId]);
 
-    // توليد رمز كوبون فريد غير قابل للتكرار
+    // توليد رمز الكوبون
     const tokenCode = `BZ-LOYAL-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-    // حفظ قسيمة الشراء في قاعدة البيانات لتفعيلها عند الدفع
-    const newCoupon = await Coupon.create({
+    await supabase.from("coupons").insert({
       code: tokenCode,
-      discountType: "fixed",
-      discountValue: COUPON_VALUE,
-      isActive: true,
-      isLoyaltyReward: true,
-      createdBy: user._id,
+      discount_type: "fixed",
+      discount_value: COUPON_VALUE,
+      applies_to_type: "all",
+      is_active: true,
     });
 
     return {
       success: true,
       couponCode: tokenCode,
       discountValue: COUPON_VALUE,
-      newPointsBalance: user.loyaltyPoints,
+      newPointsBalance: newPoints,
     };
   } catch (error) {
     console.error("Failed to exchange loyalty points:", error);
@@ -64,14 +62,18 @@ export async function exchangePointsForCoupon() {
 // جلب رصيد النقاط المحدث للعميل
 export async function getUserPoints() {
   try {
-    await connectDB();
     const session = await auth();
     if (!session || !session.user) {
       return { success: false, points: 0 };
     }
     const userId = (session.user as any).id;
-    const user = await User.findById(userId);
-    return { success: true, points: user ? user.loyaltyPoints : 0 };
+    const { data: user } = await supabase
+      .from("users")
+      .select("loyalty_points")
+      .eq("id", userId)
+      .maybeSingle();
+
+    return { success: true, points: user ? user.loyalty_points : 0 };
   } catch (error) {
     console.error("Failed to fetch user points:", error);
     return { success: false, points: 0 };

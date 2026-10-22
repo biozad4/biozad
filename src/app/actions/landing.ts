@@ -1,70 +1,87 @@
 "use server";
 
-import { connectDB } from "@/lib/db";
-import { LandingPage } from "@/models/LandingPage";
-import { Product } from "@/models/Product";
+import { supabase } from "@/lib/supabase";
+
+function mapLandingPage(p: any) {
+  if (!p) return null;
+  return {
+    _id: p.id,
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    isActive: p.is_active,
+    hero: p.hero,
+    sections: p.sections,
+    seo: p.seo,
+    createdAt: p.created_at,
+  };
+}
 
 // 1. حفظ أو تعديل صفحة هبوط
 export async function saveLandingPage(data: any) {
   try {
-    await connectDB();
-
     const { _id, slug, title, isActive, hero, sections, seo } = data;
 
     if (!slug) {
       return { success: false, message: "الرابط المخصص (Slug) مطلوب" };
     }
 
-    // التحقق من تكرار الرابط في حال كانت الصفحة جديدة
-    if (!_id) {
-      const existing = await LandingPage.findOne({ slug });
+    const payload = {
+      slug,
+      title,
+      is_active: isActive !== false,
+      hero,
+      sections,
+      seo,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (_id) {
+      const { data: updated, error } = await supabase
+        .from("landing_pages")
+        .update(payload)
+        .eq("id", _id)
+        .select()
+        .single();
+      if (error) throw error;
+      return { success: true, page: mapLandingPage(updated) };
+    } else {
+      const { data: existing } = await supabase
+        .from("landing_pages")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
+
       if (existing) {
         return { success: false, message: "هذا الرابط المخصص مستخدم بالفعل في صفحة أخرى" };
       }
-    }
 
-    let savedPage;
-    if (_id) {
-      // تعديل الصفحة الحالية
-      savedPage = await LandingPage.findByIdAndUpdate(
-        _id,
-        { slug, title, isActive, hero, sections, seo },
-        { new: true }
-      );
-    } else {
-      // إنشاء صفحة هبوط جديدة تماماً
-      savedPage = await LandingPage.create({
-        slug,
-        title,
-        isActive,
-        hero,
-        sections,
-        seo,
-      });
+      const { data: created, error } = await supabase
+        .from("landing_pages")
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      return { success: true, page: mapLandingPage(created) };
     }
-
-    return { success: true, page: JSON.parse(JSON.stringify(savedPage)) };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to save landing page:", error);
-    return { success: false, message: "فشل حفظ صفحة الهبوط في قاعدة البيانات" };
+    return { success: false, message: `فشل حفظ صفحة الهبوط: ${error.message}` };
   }
 }
 
-// 2. جلب تفاصيل صفحة هبوط للعميل مع تحميل المنتجات المرتبطة بها تلقائياً
+// 2. جلب تفاصيل صفحة هبوط
 export async function getLandingPageBySlug(slug: string) {
   try {
-    await connectDB();
+    const { data: page, error } = await supabase
+      .from("landing_pages")
+      .select("*")
+      .eq("slug", slug)
+      .eq("is_active", true)
+      .maybeSingle();
 
-    const page = await LandingPage.findOne({ slug, isActive: true })
-      .populate({
-        path: "sections.products",
-        model: Product,
-      })
-      .lean();
-
-    if (!page) return null;
-
-    return JSON.parse(JSON.stringify(page));
+    if (error || !page) return null;
+    return mapLandingPage(page);
   } catch (error) {
     console.error("Failed to fetch landing page:", error);
     return null;

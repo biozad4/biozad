@@ -12,6 +12,8 @@ import { getStoreSettings, saveStoreSettings } from "@/app/actions/storeSettings
 import { useToastStore } from "@/store/useToastStore";
 import { PremiumCard } from "@/components/ui/premium-card";
 import { PremiumButton } from "@/components/ui/premium-button";
+import { BundleManagement } from "@/components/admin/BundleManagement";
+import { MultiImageUploader } from "@/components/admin/MultiImageUploader";
 import { Plus, Pencil, Trash2, LayoutDashboard, PackagePlus, RefreshCw, Award, Image, AlignLeft, Sparkles, Package } from "lucide-react";
 
 export default function AdminPage() {
@@ -30,6 +32,7 @@ export default function AdminPage() {
 
   // حالات فورم إضافة وتعديل منتج
   const [showForm, setShowForm] = useState(false);
+  const [productImages, setProductImages] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     titleAr: "", titleFr: "", sku: "", barcode: "", price: "", compareAtPrice: "", stock: "", category: "amlou",
     descAr: "", descFr: "", imagesCsv: "", isFeatured: false, isBundle: false
@@ -267,6 +270,7 @@ export default function AdminPage() {
     setEditingProduct(null);
     setHasVariants(false);
     setVariantsList([{ weight: "1kg", price: "", compareAtPrice: "", stock: "", sku: "", barcode: "" }]);
+    setProductImages([]);
     setFormData({
       titleAr: "", titleFr: "", sku: "", barcode: "", price: "", compareAtPrice: "", stock: "", category: "amlou",
       descAr: "", descFr: "", imagesCsv: "", isFeatured: false, isBundle: false
@@ -283,6 +287,8 @@ export default function AdminPage() {
     } else {
       setVariantsList([{ weight: "1kg", price: "", compareAtPrice: "", stock: "", sku: "", barcode: "" }]);
     }
+    const currentImgs = Array.isArray(prod.images) ? prod.images : [];
+    setProductImages(currentImgs);
     setFormData({
       titleAr: prod.title.ar,
       titleFr: prod.title.fr,
@@ -294,7 +300,7 @@ export default function AdminPage() {
       category: prod.category || "amlou",
       descAr: prod.description?.ar || "",
       descFr: prod.description?.fr || "",
-      imagesCsv: prod.images ? prod.images.join("\n") : "",
+      imagesCsv: currentImgs.join("\n"),
       isFeatured: !!prod.isFeatured,
       isBundle: !!prod.isBundle
     });
@@ -304,8 +310,6 @@ export default function AdminPage() {
   const handleSubmitProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    const imagesArray = formData.imagesCsv.trim() ? formData.imagesCsv.split("\n").map(img => img.trim()) : [];
 
     const payload = {
       _id: editingProduct?._id || undefined,
@@ -317,7 +321,7 @@ export default function AdminPage() {
       stock: formData.stock,
       category: formData.category,
       description: { ar: formData.descAr, fr: formData.descFr },
-      images: imagesArray,
+      images: productImages,
       variants: hasVariants ? variantsList : [],
       isFeatured: formData.isFeatured,
       isBundle: formData.isBundle
@@ -390,7 +394,7 @@ export default function AdminPage() {
           </button>
           <button onClick={() => setActiveTab("bundle")} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === "bundle" ? "bg-primary text-white" : "text-neutral-500 hover:bg-neutral-50"}`}>
             <Sparkles className="h-4 w-4" />
-            <span>باقة السعادة الشاملة</span>
+            <span>إدارة وعروض الباقات</span>
           </button>
           <button onClick={() => setActiveTab("inventory")} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all ${activeTab === "inventory" ? "bg-primary text-white" : "text-neutral-500 hover:bg-neutral-50"}`}>
             <RefreshCw className="h-4 w-4" />
@@ -470,38 +474,15 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-neutral-500 flex items-center gap-1">
-                    <Image className="h-3.5 w-3.5" /> 
-                    <span>روابط صور المنتج (رابط واحد في كل سطر أو ارفع مباشرة)</span>
-                  </label>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="md:col-span-2">
-                      <textarea 
-                        name="imagesCsv" 
-                        rows={3} 
-                        value={formData.imagesCsv} 
-                        onChange={handleInputChange} 
-                        className="w-full border rounded-xl p-3 text-xs font-mono" 
-                        placeholder="https://image-url-1.com&#10;https://image-url-2.com" 
-                      />
-                    </div>
-                    <div className="flex flex-col justify-center items-center p-4 border border-dashed border-neutral-300 dark:border-neutral-700 rounded-xl bg-neutral-50/50 dark:bg-neutral-900/10 hover:bg-neutral-50 dark:hover:bg-neutral-900/20 transition-all text-center space-y-2 relative">
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        id="imageUpload"
-                        disabled={uploading}
-                        onChange={handleImageUpload} 
-                        className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                      />
-                      <span className="text-lg">📁</span>
-                      <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-300">
-                        {uploading ? "جاري رفع الصورة..." : "اضغط لرفع صورة من جهازك"}
-                      </span>
-                      <span className="text-[9px] text-neutral-400">يرفع مباشرة إلى Cloudinary</span>
-                    </div>
-                  </div>
+                {/* معرض صور المنتج المباشر مع معاينة حية */}
+                <div className="border rounded-2xl p-4 bg-neutral-50/60 dark:bg-neutral-800/30">
+                  <MultiImageUploader
+                    images={productImages}
+                    onChange={setProductImages}
+                    label="معرض صور المنتج"
+                    description="ارفع عدة صور للمنتج من جهازك دفعة واحدة أو أضف برابط مباشر. الصورة الأولى تحمل علامة ⭐ وهي الصورة الرئيسية للمنتج."
+                    maxImages={12}
+                  />
                 </div>
 
                 {/* 2.5. خصائص الصفحة الرئيسية */}
@@ -820,223 +801,10 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* 5. تبويب باقة السعادة الشاملة */}
+      {/* 5. تبويب إدارة وعروض الباقات */}
       {activeTab === "bundle" && (
-        <div className="mx-auto max-w-4xl px-8 py-8 space-y-6">
-          <PremiumCard hoverEffect={false} className="p-8 space-y-6">
-            <div className="border-b pb-4 flex justify-between items-center">
-              <div className="space-y-1">
-                <h3 className="text-lg font-serif font-black text-neutral-800">إعدادات باقة السعادة الشاملة (الصفحة الرئيسية)</h3>
-                <p className="text-xs text-neutral-400">تحكم بالكامل في العرض الترويجي والمنتج المجمع المعروض في الواجهة الرئيسية للمتجر.</p>
-              </div>
-              <Sparkles className="h-6 w-6 text-accent animate-pulse" />
-            </div>
-
-            <form onSubmit={handleSaveBundle} className="space-y-6 text-xs font-semibold">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <label className="text-neutral-500">عنوان الباقة بالعربية *</label>
-                  <input
-                    type="text"
-                    required
-                    value={bundleForm.titleAr}
-                    onChange={(e) => setBundleForm({ ...bundleForm, titleAr: e.target.value })}
-                    className="w-full border rounded-xl p-3"
-                    placeholder="مثال: باقة السعادة الشاملة (عرض خاص)"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-neutral-500">عنوان الباقة بالفرنسية *</label>
-                  <input
-                    type="text"
-                    required
-                    value={bundleForm.titleFr}
-                    onChange={(e) => setBundleForm({ ...bundleForm, titleFr: e.target.value })}
-                    className="w-full border rounded-xl p-3"
-                    placeholder="Ex: Pack Bonheur BioZad (Offre Spéciale)"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="space-y-1.5">
-                  <label className="text-neutral-500">ثمن البيع بالدرهم *</label>
-                  <input
-                    type="number"
-                    required
-                    value={bundleForm.price}
-                    onChange={(e) => setBundleForm({ ...bundleForm, price: e.target.value })}
-                    className="w-full border rounded-xl p-3 font-mono"
-                    placeholder="مثال: 450"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-neutral-500">السعر الأصلي قبل الخصم (درهم)</label>
-                  <input
-                    type="number"
-                    value={bundleForm.compareAtPrice}
-                    onChange={(e) => setBundleForm({ ...bundleForm, compareAtPrice: e.target.value })}
-                    className="w-full border rounded-xl p-3 font-mono"
-                    placeholder="مثال: 550"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-neutral-500">رابط صورة الباقة * (أو ارفع مباشرة)</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      required
-                      value={bundleForm.image}
-                      onChange={(e) => setBundleForm({ ...bundleForm, image: e.target.value })}
-                      className="w-full border rounded-xl p-3 font-mono text-xs"
-                      placeholder="https://image-url.com/bundle.jpg"
-                    />
-                    <div className="relative border border-dashed rounded-xl px-4 py-2 hover:bg-neutral-50 flex items-center justify-center shrink-0 min-w-[90px] bg-neutral-50/50">
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        disabled={uploading}
-                        onChange={(e) => handleSingleUpload(e, "bundleImage")}
-                        className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                      />
-                      <span className="text-[10px] font-bold">{uploading ? "جاري..." : "رفع الصورة 📁"}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <label className="text-neutral-500">محتويات وتفاصيل الباقة بالعربية * (اكتب سطراً واحداً لكل عنصر لترتيبها)</label>
-                  <textarea
-                    required
-                    rows={5}
-                    value={bundleForm.descAr}
-                    onChange={(e) => setBundleForm({ ...bundleForm, descAr: e.target.value })}
-                    className="w-full border rounded-xl p-3 leading-relaxed"
-                    placeholder="مثال:&#10;🍯 1 كجم عسل زهور طبيعي حر&#10;🥜 1 كجم أملو اللوز البلدي بأركان وعسل"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-neutral-500">محتويات وتفاصيل الباقة بالفرنسية *</label>
-                  <textarea
-                    required
-                    rows={5}
-                    value={bundleForm.descFr}
-                    onChange={(e) => setBundleForm({ ...bundleForm, descFr: e.target.value })}
-                    className="w-full border rounded-xl p-3 leading-relaxed"
-                    placeholder="Ex:&#10;🍯 1 kg Miel de Fleurs Sauvages&#10;🥜 1 kg Amlou aux Amandes"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 border-t pt-4">
-                <input
-                  type="checkbox"
-                  id="bundleActive"
-                  checked={bundleForm.isActive}
-                  onChange={(e) => setBundleForm({ ...bundleForm, isActive: e.target.checked })}
-                  className="h-4 w-4 accent-primary"
-                />
-                <label htmlFor="bundleActive" className="text-xs font-bold text-neutral-700 cursor-pointer">
-                  تفعيل الباقة الترويجية وعرضها بالصفحة الرئيسية
-                </label>
-              </div>
-
-              {/* إعدادات الكارت العائم الترويجي بالـ Hero */}
-              <div className="border-t pt-6 space-y-6">
-                <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-neutral-800">إعدادات الكارت العائم الترويجي (الـ Hero)</h4>
-                  <p className="text-[10px] text-neutral-400">تحكم بالكرت الجانبي الصغير العائم بجانب صور الـ Hero (مثل: زيت التين الشوكي • الأكثر طلباً).</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
-                    <label className="text-neutral-500">عنوان المنتج بالعربية</label>
-                    <input
-                      type="text"
-                      value={bundleForm.hotTitleAr}
-                      onChange={(e) => setBundleForm({ ...bundleForm, hotTitleAr: e.target.value })}
-                      className="w-full border rounded-xl p-3"
-                      placeholder="مثال: زيت التين الشوكي"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-neutral-500">عنوان المنتج بالفرنسية</label>
-                    <input
-                      type="text"
-                      value={bundleForm.hotTitleFr}
-                      onChange={(e) => setBundleForm({ ...bundleForm, hotTitleFr: e.target.value })}
-                      className="w-full border rounded-xl p-3"
-                      placeholder="Ex: Huile de Figue de Barbarie"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  <div className="space-y-1.5">
-                    <label className="text-neutral-500">العنوان الفرعي/الشارة بالعربية</label>
-                    <input
-                      type="text"
-                      value={bundleForm.hotSubAr}
-                      onChange={(e) => setBundleForm({ ...bundleForm, hotSubAr: e.target.value })}
-                      className="w-full border rounded-xl p-3"
-                      placeholder="مثال: 🔥 الأكثر طلباً هذا الأسبوع"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-neutral-500">العنوان الفرعي/الشارة بالفرنسية</label>
-                    <input
-                      type="text"
-                      value={bundleForm.hotSubFr}
-                      onChange={(e) => setBundleForm({ ...bundleForm, hotSubFr: e.target.value })}
-                      className="w-full border rounded-xl p-3"
-                      placeholder="Ex: 🔥 Le plus demandé"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-neutral-500">رابط صورة مصغرة للمنتج (أو ارفع مباشرة)</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={bundleForm.hotImage}
-                        onChange={(e) => setBundleForm({ ...bundleForm, hotImage: e.target.value })}
-                        className="w-full border rounded-xl p-3 font-mono text-xs"
-                        placeholder="https://image-url.com/mini-product.jpg"
-                      />
-                      <div className="relative border border-dashed rounded-xl px-4 py-2 hover:bg-neutral-50 flex items-center justify-center shrink-0 min-w-[90px] bg-neutral-50/50">
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          disabled={uploading}
-                          onChange={(e) => handleSingleUpload(e, "hotImage")}
-                          className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                        />
-                        <span className="text-[10px] font-bold">{uploading ? "جاري..." : "رفع الصورة 📁"}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-neutral-500">رابط التوجيه عند الضغط على الكرت (الـ Link)</label>
-                  <input
-                    type="text"
-                    value={bundleForm.hotLink}
-                    onChange={(e) => setBundleForm({ ...bundleForm, hotLink: e.target.value })}
-                    className="w-full border rounded-xl p-3 font-mono"
-                    placeholder="مثال: /shop#products أو رابط منتج محدد"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <PremiumButton type="submit" loading={bundleLoading} variant="primary" className="px-10 py-3.5 text-xs">
-                  حفظ وتطبيق إعدادات الباقة
-                </PremiumButton>
-              </div>
-            </form>
-          </PremiumCard>
+        <div className="mx-auto max-w-6xl px-4 sm:px-8 py-8 space-y-6">
+          <BundleManagement products={products} />
 
           {/* إعدادات كلفة الشحن والتوصيل المجاني */}
           <PremiumCard hoverEffect={false} className="p-6 space-y-6 mt-6">

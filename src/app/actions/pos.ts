@@ -1,33 +1,70 @@
 "use server";
 
-import { connectDB } from "@/lib/db";
-import { Product } from "@/models/Product";
-import { Order } from "@/models/Order";
-import { StockMovement } from "@/models/StockMovement";
+import { supabase, query as pgQuery } from "@/lib/supabase";
+
+function mapPosProduct(p: any) {
+  return {
+    _id: p.id,
+    id: p.id,
+    title: { ar: p.title_ar, fr: p.title_fr },
+    price: Number(p.price),
+    compareAtPrice: p.compare_at_price ? Number(p.compare_at_price) : undefined,
+    stock: p.stock,
+    sku: p.sku,
+    barcode: p.barcode,
+    images: p.images || [],
+    slug: p.slug,
+    variants: (p.product_variants || []).map((v: any) => ({
+      _id: v.id,
+      sku: v.sku,
+      barcode: v.barcode,
+      weight: v.weight,
+      price: Number(v.price),
+      stock: v.stock,
+    })),
+  };
+}
 
 // 1. البحث الفوري عن المنتج من خلال مسح الباركود أو الـ SKU
 export async function findProductByBarcode(barcode: string) {
   try {
-    await connectDB();
-    
-    // البحث عن منتج رئيسي يطابق الباركود أو الـ SKU
-    let product = await Product.findOne({
-      $or: [{ barcode: barcode }, { sku: barcode }]
-    }).lean();
+    const cleanCode = barcode.trim();
+
+    // البحث كمنتج رئيسي
+    const { data: product } = await supabase
+      .from("products")
+      .select("*, product_variants(*)")
+      .or(`barcode.eq.${cleanCode},sku.eq.${cleanCode}`)
+      .maybeSingle();
 
     if (product) {
-      return { success: true, product: JSON.parse(JSON.stringify(product)), isVariant: false };
-    }
-
-    // إذا لم يعثر عليه كمنتج رئيسي، نبحث داخل مصفوفة المتغيرات (Variants)
-    product = await Product.findOne({ "variants.barcode": barcode }).lean();
-    if (product) {
-      const variant = product.variants.find((v: any) => v.barcode === barcode);
       return { 
         success: true, 
-        product: JSON.parse(JSON.stringify(product)), 
+        product: mapPosProduct(product), 
+        isVariant: false 
+      };
+    }
+
+    // البحث داخل المتغيرات
+    const { data: variantRow } = await supabase
+      .from("product_variants")
+      .select("*, products(*)")
+      .or(`barcode.eq.${cleanCode},sku.eq.${cleanCode}`)
+      .maybeSingle();
+
+    if (variantRow && variantRow.products) {
+      return {
+        success: true,
+        product: mapPosProduct(variantRow.products),
         isVariant: true,
-        variant: JSON.parse(JSON.stringify(variant))
+        variant: {
+          _id: variantRow.id,
+          sku: variantRow.sku,
+          barcode: variantRow.barcode,
+          weight: variantRow.weight,
+          price: Number(variantRow.price),
+          stock: variantRow.stock,
+        }
       };
     }
 
@@ -38,7 +75,7 @@ export async function findProductByBarcode(barcode: string) {
   }
 }
 
-// 2. إتمام عملية البيع وخصم المخزون وإنشاء الفاتورة للزبون
+// 2. إتمام عملية البيع وخصم المخزون وإنشاء الفاتورة
 export async function submitPosSale(payload: {
   items: any[];
   paymentMethod: "cash_pos" | "card_pos";
@@ -47,66 +84,69 @@ export async function submitPosSale(payload: {
   cashierId: string;
 }) {
   try {
-    await connectDB();
-
     const { items, paymentMethod, subtotal, total, cashierId } = payload;
     
-    if (items.length === 0) {
+    if (!items || items.length === 0) {
       return { success: false, message: "العربة فارغة حالياً" };
     }
 
-    // توليد رقم فاتورة فريد للـ POS يبدأ بـ BZ-POS-
     const orderNumber = `BZ-POS-${Math.floor(100000 + Math.random() * 900000)}`;
 
-    // إنشاء الطلب مباشرة بوضعية "مكتمل ومسلم" (Delivered)
-    const newPosOrder = await Order.create({
-      orderNumber,
-      items: items.map((item) => ({
-        product: item.productId,
-        variantSku: item.variantSku || undefined,
+    const { data: newPosOrder, error: orderError } = await supabase
+      .from("orders")
+      .insert({
+        order_number: orderNumber,
+        subtotal,
+        shipping_cost: 0,
+        total,
+        source: "pos",
+        payment_method: paymentMethod,
+        status: "delivered",
+        cashier_id: cashierId || null,
+      })
+      .select("id")
+      .single();
+
+    if (orderError || !newPosOrder) {
+      throw new Error(orderError?.message || "فشل تسجيل فاتورة البيع");
+    }
+
+    // تحديث المخزون وحفظ العناصر
+    for (const item of items) {
+      await supabase.from("order_items").insert({
+        order_id: newPosOrder.id,
+        product_id: item.productId,
+        variant_sku: item.variantSku || null,
         title: item.title,
         quantity: item.quantity,
         price: item.price,
-      })),
-      subtotal,
-      shippingCost: 0,
-      total,
-      source: "pos",
-      paymentMethod,
-      status: "delivered", // مبيعات الـ POS تسلم فورياً في المحل
-      cashier: cashierId,
-    });
+      });
 
-    // تحديث وتعديل المخزون في نفس اللحظة وتسجيل الحركات
-    for (const item of items) {
       if (item.variantSku) {
-        // خصم المخزون من المتغير المحدد (Variant)
-        await Product.updateOne(
-          { _id: item.productId, "variants.sku": item.variantSku },
-          { $inc: { "variants.$.stock": -item.quantity } }
+        await pgQuery(
+          "UPDATE product_variants SET stock = stock - $1 WHERE sku = $2",
+          [item.quantity, item.variantSku]
         );
       } else {
-        // خصم المخزون من المنتج الرئيسي
-        await Product.updateOne(
-          { _id: item.productId },
-          { $inc: { stock: -item.quantity } }
+        await pgQuery(
+          "UPDATE products SET stock = stock - $1 WHERE id = $2",
+          [item.quantity, item.productId]
         );
       }
 
-      // تسجيل حركة المخزون فورا (Stock Movement) لحفظ السجل التراكمي للـ POS
-      await StockMovement.create({
-        product: item.productId,
-        variantSku: item.variantSku || undefined,
+      await supabase.from("stock_movements").insert({
+        product_id: item.productId,
+        variant_sku: item.variantSku || null,
         quantity: -item.quantity,
         type: "pos_sale",
-        performedBy: cashierId,
+        performed_by: cashierId || null,
         notes: `POS Direct Sale: ${orderNumber}`,
       });
     }
 
     return { success: true, orderNumber };
-  } catch (error) {
+  } catch (error: any) {
     console.error("POS transaction submit error:", error);
-    return { success: false, message: "فشل في تسجيل فاتورة البيع المباشر" };
+    return { success: false, message: `فشل في تسجيل فاتورة البيع المباشر: ${error.message}` };
   }
 }

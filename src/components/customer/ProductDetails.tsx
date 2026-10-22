@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useUIStore } from "@/store/useUIStore";
 import { useCartStore } from "@/store/useCartStore";
+import { useFlyToCart } from "@/store/useFlyToCart";
 import { useToastStore } from "@/store/useToastStore";
 import { PremiumButton } from "../ui/premium-button";
 import { PremiumCard } from "../ui/premium-card";
@@ -36,9 +37,11 @@ interface ProductDetailsProps {
 export function ProductDetails({ product }: ProductDetailsProps) {
   const { lang } = useUIStore();
   const addItem = useCartStore((state) => state.addItem);
+  const triggerFly = useFlyToCart((state) => state.triggerFly);
   const { showToast } = useToastStore();
 
   const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
+  const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [copied, setCopied] = useState(false);
 
   const title = product.title[lang];
@@ -69,8 +72,17 @@ export function ProductDetails({ product }: ProductDetailsProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // الإضافة للسلة
-  const handleAddToCart = () => {
+  // الإضافة للسلة مع إطلاق أنيماسيون التحليق نحو السلة بالهيدر
+  const handleAddToCart = (e?: React.MouseEvent) => {
+    const activeImage = product.images[selectedImageIdx] || product.images[0] || "";
+
+    // تشغيل أنيماسيون طيران مصغر المنتج نحو أيقونة السلة بالهيدر
+    triggerFly({
+      image: activeImage,
+      event: e,
+      startElement: (e?.currentTarget as HTMLElement) || undefined,
+    });
+
     if (hasVariants) {
       const selectedVariant = product.variants![selectedVariantIdx];
       addItem({
@@ -81,7 +93,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           fr: `${product.title.fr} (${selectedVariant.weight})`
         },
         price: selectedVariant.price,
-        image: product.images[0] || "",
+        image: activeImage,
         weight: selectedVariant.weight
       });
     } else {
@@ -89,7 +101,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         id: product._id,
         title: product.title,
         price: product.price,
-        image: product.images[0] || "",
+        image: activeImage,
       });
     }
     showToast(
@@ -119,10 +131,11 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           <PremiumCard hoverEffect={false} className="p-4 overflow-hidden rounded-[2rem] bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 shadow-premium-lg">
             <div className="aspect-square rounded-2xl overflow-hidden bg-neutral-50 dark:bg-neutral-950 flex items-center justify-center">
               <motion.img
+                key={selectedImageIdx}
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-                src={product.images[0] || "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=800"}
+                transition={{ duration: 0.3 }}
+                src={product.images[selectedImageIdx] || product.images[0] || "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=800"}
                 alt={title}
                 className="h-full w-full object-cover"
               />
@@ -133,9 +146,18 @@ export function ProductDetails({ product }: ProductDetailsProps) {
           {product.images.length > 1 && (
             <div className="grid grid-cols-4 gap-3">
               {product.images.map((img, idx) => (
-                <div key={idx} className="aspect-square border rounded-xl overflow-hidden bg-white dark:bg-neutral-900 cursor-pointer p-1">
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setSelectedImageIdx(idx)}
+                  className={`aspect-square border rounded-xl overflow-hidden bg-white dark:bg-neutral-900 cursor-pointer p-1 transition-all ${
+                    selectedImageIdx === idx
+                      ? "border-primary ring-2 ring-primary/20 scale-105"
+                      : "border-neutral-200 dark:border-neutral-800 opacity-70 hover:opacity-100"
+                  }`}
+                >
                   <img src={img} alt="" className="h-full w-full object-cover rounded-lg" />
-                </div>
+                </button>
               ))}
             </div>
           )}

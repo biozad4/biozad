@@ -1,32 +1,24 @@
 import React from "react";
 import { Hero } from "@/components/customer/Hero";
 import { FeaturedBundle } from "@/components/customer/FeaturedBundle";
+import { CustomBundleTopBanner } from "@/components/customer/CustomBundleTopBanner";
 import { FeaturedCategories } from "@/components/customer/FeaturedCategories";
 import { ProductCard } from "@/components/customer/ProductCard";
 import { getFilteredProducts } from "@/app/actions/products";
-import { connectDB } from "@/lib/db";
-import { Product } from "@/models/Product";
-import { FeaturedBundleModel } from "@/models/FeaturedBundle";
+import { getActiveBundles, getFeaturedBundleSettings, getCustomBundleSettings } from "@/app/actions/featuredBundle";
+import { supabase } from "@/lib/supabase";
 import { ArrowRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-async function getDynamicBundle() {
-  try {
-    await connectDB();
-    const bundle = await FeaturedBundleModel.findOne({ isActive: true }).lean();
-    return bundle ? JSON.parse(JSON.stringify(bundle)) : null;
-  } catch (error) {
-    console.error("Error fetching dynamic bundle:", error);
-    return null;
-  }
-}
-
 async function getDynamicFeaturedProducts() {
   try {
-    await connectDB();
-    const featured = await Product.find({ isActive: true, isFeatured: true }).limit(4).lean();
-    return JSON.parse(JSON.stringify(featured));
+    const products = await getFilteredProducts({});
+    // جلب المنتجات المميزة أولاً ثم إكمالها بالمنتجات النشطة الأخرى لعرض سطرين كاملين (8 منتجات)
+    const featured = products.filter((p: any) => p.isFeatured);
+    const nonFeatured = products.filter((p: any) => !p.isFeatured);
+    const combined = [...featured, ...nonFeatured];
+    return combined.slice(0, 8);
   } catch (error) {
     console.error("Error fetching dynamic featured products:", error);
     return [];
@@ -34,63 +26,69 @@ async function getDynamicFeaturedProducts() {
 }
 
 export default async function HomePage() {
-  // 1. جلب باقة السعادة المميزة ديناميكياً من قاعدة البيانات
-  const dynamicBundle = await getDynamicBundle();
+  // 1. جلب كافة الباقات النشطة وإعدادات الباقة المخصصة ديناميكياً من Supabase
+  const [bundlesRes, customSettingsRes] = await Promise.all([
+    getActiveBundles(),
+    getCustomBundleSettings()
+  ]);
+  const activeBundles = bundlesRes.success ? (bundlesRes.bundles || []) : [];
+  const dynamicBundle = activeBundles.find((b: any) => b.isFeatured) || activeBundles[0] || null;
+  const isCustomBundleActive = customSettingsRes.success ? customSettingsRes.settings.isActive : false;
 
-  // 2. جلب المنتجات المميزة ديناميكياً من قاعدة البيانات
-  let featuredProducts = await getDynamicFeaturedProducts();
-
-  // 3. في حال عدم قيام المشرف بتحديد منتجات مميزة، نقوم بالسحب الاحتياطي لأحدث 4 سلع
-  if (!featuredProducts || featuredProducts.length === 0) {
-    const products = await getFilteredProducts({ sortBy: "newest" });
-    featuredProducts = products.slice(0, 4);
-  }
+  // 2. جلب المنتجات المميزة ديناميكياً (8 منتجات = سطرين كل سطر 4)
+  const featuredProducts = await getDynamicFeaturedProducts();
 
   return (
-    <div className="bg-[#FAF9F6] dark:bg-neutral-950 min-h-screen space-y-12">
+    <div className="bg-[#FAF9F6] dark:bg-neutral-950 min-h-screen">
       
-      {/* 1. البانر الترحيبي الفاخر (Hero Section) */}
-      <Hero bundle={dynamicBundle} />
+      {/* 0. شريط التنبيه العلوي تحت الهيدر مباشرة (عند تفعيل باقة التشكيل) */}
+      <CustomBundleTopBanner isActive={isCustomBundleActive} />
 
-      {/* 2. عرض الباقة الترويجية المميزة (Featured Bundle Section - Dynamic) */}
-      <FeaturedBundle bundle={dynamicBundle} />
+      <div className="space-y-12">
+        {/* 1. البانر الترحيبي الفاخر (Hero Section) */}
+        <Hero bundle={dynamicBundle} />
+
+        {/* 2. عرض الباقات الترويجية مع إمكانية التمرير التلقائي واليدوي بالفليش */}
+        <FeaturedBundle 
+          bundle={dynamicBundle} 
+          bundles={activeBundles} 
+          customBundleActive={isCustomBundleActive} 
+        />
 
       {/* 3. فئاتنا المميزة البصرية (Featured Categories Section) */}
       <FeaturedCategories />
 
-      {/* 4. المنتجات المميزة الأكثر مبيعاً (Curated Product Grid - Dynamic) */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 space-y-10">
-        <div className="text-center space-y-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3.5 py-1 text-[10px] font-bold text-primary dark:text-accent uppercase tracking-wider">
-            ✨ منتجات منتقاة بعناية
+      {/* 4. المنتجات الرائجة (Featured Products) - سطرين كل سطر 4 منتجات وسطر 3 فيه زر عرض الكل */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="text-center sm:text-start mb-8 sm:mb-10">
+          <span className="text-emerald-700 dark:text-emerald-400 font-semibold text-xs tracking-wider uppercase">
+            أصالة وجودة
           </span>
-          <h2 className="font-serif text-3xl font-black text-neutral-900 dark:text-white">
-            منتجات مميزة الأكثر طلباً
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-neutral-900 dark:text-white mt-1">
+            مختارات مميزة لك
           </h2>
-          <p className="text-xs text-neutral-500 max-w-md mx-auto">
-            تصفح التشكيلة المختارة من سلع BioZad الطبيعية والفاخرة بنسبة 100% الأكثر طلباً وتقييماً.
-          </p>
         </div>
 
-        {/* شبكة المنتجات (4 أعمدة) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* شبكة عرض المنتجات الراقية: سطرين، كل سطر 4 منتجات (8 منتجات) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7">
           {featuredProducts.map((product: any) => (
             <ProductCard key={product._id} product={product} />
           ))}
         </div>
 
-        {/* زر عرض كامل التشكيلة */}
-        <div className="flex justify-center pt-4">
+        {/* السطر الثالث: زر عرض الكل مركزي وفاخر */}
+        <div className="mt-12 sm:mt-14 flex justify-center">
           <a
-            href="/shop#products"
-            className="inline-flex items-center gap-2 bg-primary text-white hover:bg-primary/95 px-8 py-4 rounded-full text-xs font-bold shadow-premium-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+            href="/shop"
+            className="group inline-flex items-center justify-center gap-3 px-8 sm:px-12 py-4 rounded-2xl bg-white dark:bg-neutral-900 border-2 border-emerald-700/25 dark:border-emerald-500/30 hover:border-emerald-700 dark:hover:border-emerald-500 text-neutral-900 dark:text-white hover:text-emerald-700 dark:hover:text-emerald-400 font-bold text-sm sm:text-base shadow-premium-sm hover:shadow-premium-md transition-all duration-300 hover:scale-105 active:scale-95"
           >
-            <span>عرض المزيد من المنتجات (المعرض الفاخر)</span>
-            <ArrowRight className="h-4.5 w-4.5 rotate-180 rtl:rotate-0" />
+            <span>عرض الكل</span>
+            <ArrowRight className="w-4 h-4 rtl:rotate-180 transition-transform group-hover:translate-x-1.5 rtl:group-hover:-translate-x-1.5" />
           </a>
         </div>
       </section>
 
+      </div>
     </div>
   );
 }

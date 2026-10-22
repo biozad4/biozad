@@ -119,11 +119,19 @@ export function ShopSection({ categories, forcedCategory }: ShopSectionProps) {
             ))}
           </div>
         ) : (
-          <div className="text-center py-20">
-            <SlidersHorizontal className="h-12 w-12 mx-auto text-neutral-300 mb-4" />
+          <div className="text-center py-20 space-y-4 max-w-md mx-auto">
+            <SlidersHorizontal className="h-12 w-12 mx-auto text-neutral-300 mb-2" />
             <p className="text-neutral-500 font-medium">
               {lang === "ar" ? "لم نجد أي منتجات تطابق خيارات التصفية هذه." : "Aucun produit trouvé pour ces critères."}
             </p>
+            {selectedCategory === "offers" && (
+              <a
+                href="/offers"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-emerald-700 text-white text-xs font-bold hover:bg-emerald-800 transition-colors shadow-sm"
+              >
+                <span>{lang === "ar" ? "تصفح باقات وعروض المتجر الحصرية" : "Découvrir nos packs et offres"}</span>
+              </a>
+            )}
           </div>
         )}
       </div>

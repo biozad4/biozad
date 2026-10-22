@@ -1,27 +1,15 @@
 import React, { Suspense } from "react";
 import { ShopSection } from "@/components/customer/ShopSection";
-import { connectDB } from "@/lib/db";
-import { Category } from "@/models/Category";
-
-async function fetchCategories() {
-  try {
-    await connectDB();
-    const categories = await Category.find({ isActive: true }).lean();
-    return JSON.parse(JSON.stringify(categories));
-  } catch (error) {
-    console.error("Failed to load categories:", error);
-    return [];
-  }
-}
+import { getCategories } from "@/app/actions/categories";
 
 export default async function RemediesPage() {
-  const categories = await fetchCategories();
+  const categories = await getCategories();
 
   return (
     <div className="bg-white dark:bg-neutral-950 min-h-screen py-10">
       <div className="text-center space-y-2 mb-8">
-        <h1 className="font-serif text-3xl font-bold text-neutral-900 dark:text-white">خلطات ووصفات علاجية</h1>
-        <p className="text-xs text-neutral-500">تركيبات طبيعية مغذية ووصفات علاجية تقليدية من وحي الطبيعة المغربية.</p>
+        <h1 className="font-serif text-3xl font-bold text-neutral-900 dark:text-white">الوصفات والخلطات الطبيعية</h1>
+        <p className="text-xs text-neutral-500">تركيبات تقليدية مستوحاة من الطب الطبيعي والتراث الأصيل.</p>
       </div>
 
       <Suspense fallback={

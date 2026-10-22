@@ -1,26 +1,37 @@
 "use server";
 
-import { connectDB } from "@/lib/db";
-import { StoreSettingsModel } from "@/models/StoreSettings";
+import { supabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 
 // 1. جلب إعدادات المتجر العامة (الشحن والتوصيل)
 export async function getStoreSettings() {
   try {
-    await connectDB();
-    const settings = await StoreSettingsModel.findOne().lean();
-    if (!settings) {
-      // إرجاع القيم الافتراضية إذا لم يتم حفظها في قاعدة البيانات بعد
+    const { data: settings, error } = await supabase
+      .from("store_settings")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !settings) {
       return {
         success: true,
         settings: {
           shippingCost: 40,
           freeShippingMin: 400,
           isFreeShippingGlobally: false,
-        }
+        },
       };
     }
-    return { success: true, settings: JSON.parse(JSON.stringify(settings)) };
+
+    return {
+      success: true,
+      settings: {
+        _id: settings.id,
+        shippingCost: Number(settings.shipping_cost),
+        freeShippingMin: Number(settings.free_shipping_min),
+        isFreeShippingGlobally: settings.is_free_shipping_globally,
+      },
+    };
   } catch (error: any) {
     console.error("Error getting store settings:", error);
     return { success: false, message: error.message };
@@ -30,23 +41,39 @@ export async function getStoreSettings() {
 // 2. حفظ وتعديل إعدادات الشحن والتوصيل من الداشبورد
 export async function saveStoreSettings(data: any) {
   try {
-    await connectDB();
-
     const { shippingCost, freeShippingMin, isFreeShippingGlobally } = data;
 
     const payload = {
-      shippingCost: Number(shippingCost),
-      freeShippingMin: Number(freeShippingMin),
-      isFreeShippingGlobally: isFreeShippingGlobally === true,
+      shipping_cost: Number(shippingCost),
+      free_shipping_min: Number(freeShippingMin),
+      is_free_shipping_globally: isFreeShippingGlobally === true,
+      updated_at: new Date().toISOString(),
     };
 
-    const existing = await StoreSettingsModel.findOne();
-    let saved;
+    const { data: existing } = await supabase
+      .from("store_settings")
+      .select("id")
+      .limit(1)
+      .maybeSingle();
 
+    let saved;
     if (existing) {
-      saved = await StoreSettingsModel.findByIdAndUpdate(existing._id, payload, { new: true });
+      const { data, error } = await supabase
+        .from("store_settings")
+        .update(payload)
+        .eq("id", existing.id)
+        .select()
+        .single();
+      if (error) throw error;
+      saved = data;
     } else {
-      saved = await StoreSettingsModel.create(payload);
+      const { data, error } = await supabase
+        .from("store_settings")
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      saved = data;
     }
 
     revalidatePath("/checkout");
@@ -55,7 +82,12 @@ export async function saveStoreSettings(data: any) {
     return { 
       success: true, 
       message: "✓ تم حفظ وتحديث إعدادات الشحن والتوصيل بنجاح!", 
-      settings: JSON.parse(JSON.stringify(saved)) 
+      settings: {
+        _id: saved.id,
+        shippingCost: Number(saved.shipping_cost),
+        freeShippingMin: Number(saved.free_shipping_min),
+        isFreeShippingGlobally: saved.is_free_shipping_globally,
+      } 
     };
   } catch (error: any) {
     console.error("Error saving store settings:", error);

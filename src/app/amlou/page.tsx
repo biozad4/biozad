@@ -1,21 +1,9 @@
 import React, { Suspense } from "react";
 import { ShopSection } from "@/components/customer/ShopSection";
-import { connectDB } from "@/lib/db";
-import { Category } from "@/models/Category";
-
-async function fetchCategories() {
-  try {
-    await connectDB();
-    const categories = await Category.find({ isActive: true }).lean();
-    return JSON.parse(JSON.stringify(categories));
-  } catch (error) {
-    console.error("Failed to load categories:", error);
-    return [];
-  }
-}
+import { getCategories } from "@/app/actions/categories";
 
 export default async function AmlouPage() {
-  const categories = await fetchCategories();
+  const categories = await getCategories();
 
   return (
     <div className="bg-white dark:bg-neutral-950 min-h-screen py-10">

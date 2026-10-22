@@ -1,0 +1,203 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  admin
+  manager
+  cashier
+  customer
+}
+
+model User {
+  id            String          @id @default(cuid())
+  name          String
+  email         String          @unique
+  passwordHash  String?
+  role          Role            @default(customer)
+  phone         String?
+  loyaltyPoints Int             @default(0)
+  addresses     Json?           // Array of { street, city, postalCode, country, isDefault }
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  orders        Order[]         @relation("CustomerOrders")
+  cashierOrders Order[]         @relation("CashierOrders")
+  stockActions  StockMovement[]
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  nameAr    String
+  nameFr    String
+  slug      String    @unique
+  image     String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  products  Product[]
+}
+
+model Product {
+  id             String           @id @default(cuid())
+  titleAr        String
+  titleFr        String
+  slug           String           @unique
+  descriptionAr  String
+  descriptionFr  String
+  benefitsAr     String?
+  benefitsFr     String?
+  ingredientsAr  String?
+  ingredientsFr  String?
+  usageAr        String?
+  usageFr        String?
+  images         String[]
+  videos         String[]
+  categoryId     String
+  category       Category         @relation(fields: [categoryId], references: [id])
+  sku            String           @unique
+  barcode        String           @unique
+  price          Float
+  compareAtPrice Float?
+  stock          Int              @default(0)
+  minStock       Int              @default(5)
+  isActive       Boolean          @default(true)
+  isFeatured     Boolean          @default(false)
+  isBundle       Boolean          @default(false)
+  averageRating  Float            @default(0)
+  reviewsCount   Int              @default(0)
+  seo            Json?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  variants       ProductVariant[]
+  orderItems     OrderItem[]
+  stockMovements StockMovement[]
+}
+
+model ProductVariant {
+  id             String   @id @default(cuid())
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku            String   @unique
+  barcode        String   @unique
+  weight         String
+  price          Float
+  compareAtPrice Float?
+  stock          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  orderNumber    String      @unique
+  customerId     String?
+  customer       User?       @relation("CustomerOrders", fields: [customerId], references: [id])
+  guestDetails   Json?       // { name, email, phone, city, address, notes }
+  subtotal       Float
+  shippingCost   Float       @default(0)
+  discountAmount Float       @default(0)
+  total          Float
+  couponId       String?
+  coupon         Coupon?     @relation(fields: [couponId], references: [id])
+  source         String      // "website" | "pos"
+  paymentMethod  String      // "cod" | "cash_pos" | "card_pos" | "store_credit_pos"
+  status         String      @default("pending") // "pending", "confirmed", "preparing", "shipping", "delivered", "cancelled", "returned"
+  cashierId      String?
+  cashier        User?       @relation("CashierOrders", fields: [cashierId], references: [id])
+  items          OrderItem[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  variantSku String?
+  title      String
+  weight     String?
+  quantity   Int
+  price      Float
+}
+
+model Coupon {
+  id               String    @id @default(cuid())
+  code             String    @unique
+  discountType     String    // "percentage" | "fixed"
+  discountValue    Float
+  appliesToType    String    @default("all") // "all" | "category" | "product" | "variant_weight"
+  targetCategoryId String?
+  targetProductId  String?
+  targetWeight     String?
+  isActive         Boolean   @default(true)
+  expirationDate   DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  orders           Order[]
+}
+
+model StockMovement {
+  id            String   @id @default(cuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id])
+  variantSku    String?
+  quantity      Int
+  type          String   // "website_sale", "pos_sale", "refill", "manual_adjustment", "return", "cancelled_order"
+  performedById String
+  performedBy   User     @relation(fields: [performedById], references: [id])
+  notes         String?
+  createdAt     DateTime @default(now())
+}
+
+model StoreSettings {
+  id                     String   @id @default(cuid())
+  shippingCost           Float    @default(40)
+  freeShippingMin        Float    @default(400)
+  isFreeShippingGlobally Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model LandingPage {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  isActive  Boolean  @default(true)
+  hero      Json     // { title: {ar, fr}, subtitle: {ar, fr}, image, ctaText: {ar, fr} }
+  sections  Json     // Array of sections
+  seo       Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FeaturedBundle {
+  id                String   @id @default(cuid())
+  titleAr           String
+  titleFr           String
+  descriptionAr     String
+  descriptionFr     String
+  price             Float
+  compareAtPrice    Float?
+  image             String
+  isActive          Boolean  @default(true)
+  hotProductTitleAr String?
+  hotProductTitleFr String?
+  hotProductSubAr   String?
+  hotProductSubFr   String?
+  hotProductImage   String?
+  hotProductLink    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

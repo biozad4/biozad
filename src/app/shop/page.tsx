@@ -1,21 +1,9 @@
-import React, { Suspense } from "react"; // استيراد Suspense للحماية
+import React, { Suspense } from "react";
 import { ShopSection } from "@/components/customer/ShopSection";
-import { connectDB } from "@/lib/db";
-import { Category } from "@/models/Category";
-
-async function fetchCategories() {
-  try {
-    await connectDB();
-    const categories = await Category.find({ isActive: true }).lean();
-    return JSON.parse(JSON.stringify(categories));
-  } catch (error) {
-    console.error("Failed to load categories in shop page:", error);
-    return [];
-  }
-}
+import { getCategories } from "@/app/actions/categories";
 
 export default async function ShopPage() {
-  const categories = await fetchCategories();
+  const categories = await getCategories();
 
   const fallbackCategories = categories.length > 0 ? categories : [
     { slug: "amlou", name: { ar: "أملو الفاخر", fr: "Amlou" } },
@@ -32,7 +20,6 @@ export default async function ShopPage() {
         <p className="text-xs text-neutral-500">استمتع بتصفح منتجاتنا الطبيعية والتقليدية المستخلصة بنقاء 100%.</p>
       </div>
 
-      {/* 💡 تغليف المكون بحيز Suspense لضمان التوافق التام والكامل مع خوادم Vercel */}
       <Suspense fallback={
         <div className="text-center py-24 text-xs text-neutral-400">
           جاري تحميل المتجر الفاخر...

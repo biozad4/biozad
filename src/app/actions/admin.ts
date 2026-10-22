@@ -1,61 +1,74 @@
 "use server";
 
-import { connectDB } from "@/lib/db";
-import { Order } from "@/models/Order";
-import { Product } from "@/models/Product";
-import { User } from "@/models/User";
+import { query } from "@/lib/supabase";
 
 export async function getAdminStats() {
   try {
-    await connectDB();
-
     // 1. حساب إجمالي الإيرادات من الطلبات غير الملغاة
-    const revenueAggregation = await Order.aggregate([
-      { $match: { status: { $ne: "cancelled" } } },
-      { $group: { _id: null, totalRevenue: { $sum: "$total" } } }
-    ]);
-    const totalRevenue = revenueAggregation[0]?.totalRevenue || 0;
+    const revRes = await query<{ revenue: string }>("SELECT COALESCE(SUM(total), 0) AS revenue FROM orders WHERE status != 'cancelled'");
+    const totalRevenue = Number(revRes[0]?.revenue || 0);
 
     // 2. حساب إجمالي عدد الطلبات
-    const totalOrders = await Order.countDocuments();
+    const ordRes = await query<{ total: string }>("SELECT COUNT(*) AS total FROM orders");
+    const totalOrders = Number(ordRes[0]?.total || 0);
 
     // 3. حساب إجمالي عدد العملاء المسجلين
-    const totalCustomers = await User.countDocuments({ role: "customer" });
+    const usrRes = await query<{ total: string }>("SELECT COUNT(*) AS total FROM users WHERE role = 'customer'");
+    const totalCustomers = Number(usrRes[0]?.total || 0);
 
-    // 4. جرد وتحديد المنتجات التي يقل مخزونها عن الحد الأدنى (Low Stock Alerts)
-    const lowStockProducts = await Product.find({
-      $or: [
-        { stock: { $lte: 5 } }, // الحد الأدنى الافتراضي
-        { "variants.stock": { $lte: 5 } }
-      ]
-    }).limit(5).lean();
+    // 4. جرد وتحديد المنتجات التي يقل مخزونها عن الحد الأدنى
+    const lowStockRows = await query(`
+      SELECT id AS _id, title_ar, title_fr, stock, sku, price
+      FROM products
+      WHERE stock <= 5
+      LIMIT 5
+    `);
 
-    // 5. جلب آخر 5 طلبات تم تسجيلها في النظام للمتابعة السريعة
-    const recentOrders = await Order.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .lean();
+    const lowStockProducts = lowStockRows.map(p => ({
+      _id: p._id,
+      title: { ar: p.title_ar, fr: p.title_fr },
+      stock: p.stock,
+      sku: p.sku,
+      price: Number(p.price)
+    }));
 
-    // 6. تجميع حجم المبيعات الشهرية لآخر 6 أشهر كبيانات للرسم البياني (Chart Data)
-    const monthlySalesAggregation = await Order.aggregate([
-      { $match: { status: { $ne: "cancelled" } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-          sales: { $sum: "$total" },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } },
-      { $limit: 6 }
-    ]);
+    // 5. جلب آخر 5 طلبات تم تسجيلها في النظام
+    const recentOrdersRows = await query(`
+      SELECT 
+        id AS _id, 
+        order_number AS "orderNumber",
+        total, 
+        status, 
+        created_at AS "createdAt",
+        guest_details AS "guestDetails"
+      FROM orders
+      ORDER BY created_at DESC
+      LIMIT 5
+    `);
 
-    // صياغة بيانات الرسوم البيانية الافتراضية في حال كانت قاعدة البيانات حديثة
-    const chartData = monthlySalesAggregation.length > 0 
-      ? monthlySalesAggregation.map((item) => ({
-          name: item._id,
-          sales: item.sales,
-          orders: item.count,
+    const recentOrders = recentOrdersRows.map(o => ({
+      ...o,
+      total: Number(o.total)
+    }));
+
+    // 6. تجميع حجم المبيعات الشهرية لآخر 6 أشهر للرسم البياني
+    const chartRes = await query<{ name: string; sales: string; orders: string }>(`
+      SELECT 
+        TO_CHAR(created_at, 'YYYY-MM') AS name,
+        COALESCE(SUM(total), 0) AS sales,
+        COUNT(*) AS orders
+      FROM orders
+      WHERE status != 'cancelled'
+      GROUP BY TO_CHAR(created_at, 'YYYY-MM')
+      ORDER BY name ASC
+      LIMIT 6
+    `);
+
+    const chartData = chartRes.length > 0 
+      ? chartRes.map((item) => ({
+          name: item.name,
+          sales: Number(item.sales),
+          orders: Number(item.orders),
         }))
       : [
           { name: "01", sales: 4000, orders: 20 },
@@ -73,8 +86,8 @@ export async function getAdminStats() {
         totalOrders,
         totalCustomers,
         lowStockCount: lowStockProducts.length,
-        recentOrders: JSON.parse(JSON.stringify(recentOrders)),
-        lowStockProducts: JSON.parse(JSON.stringify(lowStockProducts)),
+        recentOrders,
+        lowStockProducts,
         chartData
       }
     };

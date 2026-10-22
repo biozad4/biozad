@@ -1,44 +1,45 @@
 "use server";
 
-import { connectDB } from "@/lib/db";
-import { Product } from "@/models/Product";
-import { StockMovement } from "@/models/StockMovement";
-import { User } from "@/models/User";
+import { supabase, query as pgQuery } from "@/lib/supabase";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
 // 1. جلب سجل حركات البضائع الأخير وإحصائيات المستودع
 export async function getInventoryHistoryAndStats() {
   try {
-    await connectDB();
+    const { data: movementsData } = await supabase
+      .from("stock_movements")
+      .select("*, products:product_id(title_ar, title_fr, sku), users:performed_by(name)")
+      .order("created_at", { ascending: false })
+      .limit(15);
 
-    // جلب آخر 15 حركة مخزون مع جلب تفاصيل المنتج والموظف المسؤول عن الحركة
-    const movements = await StockMovement.find()
-      .populate({ path: "product", model: Product, select: "title sku" })
-      .populate({ path: "performedBy", model: User, select: "name" })
-      .sort({ createdAt: -1 })
-      .limit(15)
-      .lean();
+    const movements = (movementsData || []).map((m: any) => ({
+      _id: m.id,
+      id: m.id,
+      product: m.products ? {
+        title: { ar: m.products.title_ar, fr: m.products.title_fr },
+        sku: m.products.sku,
+      } : null,
+      performedBy: m.users ? { name: m.users.name } : null,
+      variantSku: m.variant_sku,
+      quantity: m.quantity,
+      type: m.type,
+      notes: m.notes,
+      createdAt: m.created_at,
+    }));
 
-    // حساب إحصائيات سريعة للمستودع
-    const totalProducts = await Product.countDocuments();
-    
-    // حساب إجمالي الوحدات المتوفرة في المستودع حالياً
-    const productsInDb = await Product.find({}, "stock variants").lean();
-    let totalStockUnits = 0;
-    let outOfStockCount = 0;
+    const prodCountRes = await pgQuery<{ count: string }>("SELECT COUNT(*) AS count FROM products");
+    const totalProducts = Number(prodCountRes[0]?.count || 0);
 
-    for (const p of productsInDb) {
-      if (p.variants && p.variants.length > 0) {
-        p.variants.forEach((v: any) => {
-          totalStockUnits += v.stock;
-          if (v.stock === 0) outOfStockCount++;
-        });
-      } else {
-        totalStockUnits += p.stock;
-        if (p.stock === 0) outOfStockCount++;
-      }
-    }
+    const stockSumRes = await pgQuery<{ total_stock: string; out_of_stock: string }>(`
+      SELECT 
+        COALESCE(SUM(stock), 0) AS total_stock,
+        COUNT(*) FILTER (WHERE stock = 0) AS out_of_stock
+      FROM products
+    `);
+
+    const totalStockUnits = Number(stockSumRes[0]?.total_stock || 0);
+    const outOfStockCount = Number(stockSumRes[0]?.out_of_stock || 0);
 
     return {
       success: true,
@@ -47,7 +48,7 @@ export async function getInventoryHistoryAndStats() {
         totalStockUnits,
         outOfStockCount
       },
-      movements: JSON.parse(JSON.stringify(movements))
+      movements
     };
   } catch (error: any) {
     console.error("Failed to fetch inventory data:", error);
@@ -55,44 +56,38 @@ export async function getInventoryHistoryAndStats() {
   }
 }
 
-// 2. شحن أو تعديل المخزون لمنتج محدد يدوياً من الإدارة
+// 2. شحن أو تعديل المخزون
 export async function adjustProductStock(payload: {
   productId: string;
   variantSku?: string;
-  quantity: number; // قيمة موجبة للزيادة وسالبة للنقصان
+  quantity: number;
   type: "refill" | "manual_adjustment" | "return";
   notes?: string;
 }) {
   try {
-    await connectDB();
     const session = await auth();
-    
-    if (!session || !session.user) {
-      return { success: false, message: "غير مصرح لك بإجراء هذه العملية" };
-    }
+    const userId = session?.user ? (session.user as any).id : null;
 
     const { productId, variantSku, quantity, type, notes } = payload;
 
-    // 1. تحديث مخزون المنتج أو المتغير في جدول المنتجات
     if (variantSku) {
-      await Product.updateOne(
-        { _id: productId, "variants.sku": variantSku },
-        { $inc: { "variants.$.stock": quantity } }
+      await pgQuery(
+        "UPDATE product_variants SET stock = stock + $1 WHERE sku = $2",
+        [quantity, variantSku]
       );
     } else {
-      await Product.updateOne(
-        { _id: productId },
-        { $inc: { stock: quantity } }
+      await pgQuery(
+        "UPDATE products SET stock = stock + $1 WHERE id = $2",
+        [quantity, productId]
       );
     }
 
-    // 2. تسجيل الحركة في جدول حركات المخزون للتوثيق
-    await StockMovement.create({
-      product: productId,
-      variantSku: variantSku || undefined,
+    await supabase.from("stock_movements").insert({
+      product_id: productId,
+      variant_sku: variantSku || null,
       quantity,
       type,
-      performedBy: (session.user as any).id,
+      performed_by: userId || null,
       notes: notes || "تحديث يدوي من لوحة الإدارة",
     });
 

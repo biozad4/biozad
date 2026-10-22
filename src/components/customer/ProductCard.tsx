@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUIStore } from "@/store/useUIStore";
 import { useCartStore } from "@/store/useCartStore";
+import { useFlyToCart } from "@/store/useFlyToCart";
 import { useToastStore } from "@/store/useToastStore";
 import { PremiumCard } from "../ui/premium-card";
 import { PremiumButton } from "../ui/premium-button";
@@ -34,6 +35,7 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { lang } = useUIStore();
   const addItem = useCartStore((state) => state.addItem);
+  const triggerFly = useFlyToCart((state) => state.triggerFly);
   const { showToast } = useToastStore();
 
   // حالات نافذة العرض السريع (Quick View) وتحديد الوزن المختار
@@ -57,10 +59,19 @@ export function ProductCard({ product }: ProductCardProps) {
     ? Math.round(((currentComparePrice - currentPrice) / currentComparePrice) * 100)
     : 0;
 
-  // دالة الإضافة السلسة للمنتج أو الوزن المحدد للسلة
+  // دالة الإضافة السلسة للمنتج أو الوزن المحدد للسلة مع أنيماسيون الطيران للسلة
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    const activeImage = product.images[0] || "";
+
+    // إطلاق أنيماسيون التحليق نحو السلة
+    triggerFly({
+      image: activeImage,
+      event: e,
+      startElement: (e.currentTarget as HTMLElement) || undefined,
+    });
 
     if (hasVariants) {
       const selectedVariant = product.variants![selectedVariantIdx];

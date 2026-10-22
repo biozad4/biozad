@@ -1,15 +1,16 @@
 "use server";
 
-import { connectDB } from "@/lib/db";
-import { User } from "@/models/User";
+import { supabase } from "@/lib/supabase";
 import bcrypt from "bcryptjs";
 
 export async function createInitialAdmin() {
   try {
-    await connectDB();
-
     const adminEmail = "admin@biozad.com";
-    const existingAdmin = await User.findOne({ email: adminEmail });
+    const { data: existingAdmin } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", adminEmail)
+      .maybeSingle();
 
     if (existingAdmin) {
       return { success: false, message: "حساب الآدمن موجود بالفعل في قاعدة البيانات!" };
@@ -19,17 +20,21 @@ export async function createInitialAdmin() {
     const passwordHash = await bcrypt.hash("BiozadAdmin2026", 10);
 
     // إنشاء حساب الآدمن مع رول admin
-    await User.create({
+    const { error } = await supabase.from("users").insert({
       name: "المدير العام BioZad",
       email: adminEmail,
-      passwordHash,
+      password_hash: passwordHash,
       role: "admin",
-      loyaltyPoints: 1000, // نقاط ولاء إضافية
+      loyalty_points: 1000,
     });
+
+    if (error) {
+      throw new Error(error.message);
+    }
 
     return { 
       success: true, 
-      message: "✓ تم إنشاء حساب المسؤول الأول بنجاح!",
+      message: "✓ تم إنشاء حساب المسؤول الأول بنجاح في Supabase!",
       credentials: {
         email: adminEmail,
         password: "BiozadAdmin2026"

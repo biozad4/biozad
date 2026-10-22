@@ -6,6 +6,8 @@ import { SessionProvider } from "next-auth/react";
 import { PremiumToast } from "@/components/ui/premium-toast";
 import { Footer } from "@/components/shared/Footer";
 
+import { FlyToCartOverlay } from "@/components/customer/FlyToCartOverlay";
+
 export const metadata: Metadata = {
   title: "BioZad | منتجات مغربية طبيعية فاخرة",
   description: "المتجر الرسمي لمنتجات BioZad من زيوت طبيعية وأملو وعسل حر مستخلص بنقاء 100%.",
@@ -23,6 +25,7 @@ export default function RootLayout({
         <SessionProvider>
           <Header />
           <CartDrawer />
+          <FlyToCartOverlay />
           <PremiumToast />
           <main className="flex-1">{children}</main>
           <Footer />

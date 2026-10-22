@@ -1,7 +1,6 @@
 "use server";
 
-import { connectDB } from "@/lib/db";
-import { User } from "@/models/User";
+import { supabase } from "@/lib/supabase";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
@@ -14,15 +13,6 @@ const registerSchema = z.object({
 
 export async function registerUser(rawData: any) {
   try {
-    // 1. محاولة الاتصال بقاعدة البيانات
-    try {
-      await connectDB();
-    } catch (dbError: any) {
-      console.error("Database connection failed in registration:", dbError);
-      return { success: false, message: `فشل الاتصال بقاعدة البيانات: ${dbError.message || "تأكد من تشغيل MongoDB"}` };
-    }
-
-    // 2. التحقق من المدخلات عبر Zod
     const validation = registerSchema.safeParse(rawData);
     if (!validation.success) {
       const fieldErrors = validation.error.flatten().fieldErrors;
@@ -31,33 +21,46 @@ export async function registerUser(rawData: any) {
     }
 
     const { name, email, password, phone } = validation.data;
+    const normalizedEmail = email.toLowerCase().trim();
 
-    // 3. التحقق من وجود الحساب مسبقاً
-    const existing = await User.findOne({ email: email.toLowerCase() });
+    // 1. التحقق من وجود الحساب مسبقاً
+    const { data: existing } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", normalizedEmail)
+      .maybeSingle();
+
     if (existing) {
       return { success: false, message: "هذا البريد الإلكتروني مسجل بالفعل لدينا." };
     }
 
-    // 4. تشفير كلمة المرور
+    // 2. تشفير كلمة المرور
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // 5. حفظ العميل الجديد
-    const newUser = await User.create({
-      name,
-      email: email.toLowerCase(),
-      passwordHash,
-      phone,
-      role: "customer",
-      loyaltyPoints: 50, 
-    });
+    // 3. حفظ العميل الجديد في Supabase
+    const { data: newUser, error } = await supabase
+      .from("users")
+      .insert({
+        name,
+        email: normalizedEmail,
+        password_hash: passwordHash,
+        phone: phone || null,
+        role: "customer",
+        loyalty_points: 50,
+      })
+      .select("id, name, loyalty_points")
+      .single();
+
+    if (error || !newUser) {
+      throw new Error(error?.message || "فشل تسجيل المستخدم في قاعدة البيانات");
+    }
 
     return { 
       success: true, 
-      user: { id: newUser._id.toString(), name: newUser.name, points: newUser.loyaltyPoints } 
+      user: { id: newUser.id, name: newUser.name, points: newUser.loyalty_points } 
     };
   } catch (error: any) {
     console.error("User registration error details:", error);
-    // إرجاع رسالة الخطأ الحقيقية للمستخدم لتسهيل التشخيص الفوري
     return { success: false, message: `فشل إنشاء الحساب: ${error.message || "خطأ مجهول"}` };
   }
 }

@@ -1,8 +1,6 @@
 "use server";
 
-import { connectDB } from "@/lib/db";
-import { Product } from "@/models/Product";
-import { Category } from "@/models/Category";
+import { supabase } from "@/lib/supabase";
 
 interface FilterParams {
   categorySlug?: string;
@@ -12,53 +10,113 @@ interface FilterParams {
   maxPrice?: number;
 }
 
+function mapProduct(p: any) {
+  if (!p) return null;
+  return {
+    _id: p.id,
+    id: p.id,
+    title: { ar: p.title_ar, fr: p.title_fr },
+    description: { ar: p.description_ar, fr: p.description_fr },
+    benefits: { ar: p.benefits_ar, fr: p.benefits_fr },
+    ingredients: { ar: p.ingredients_ar, fr: p.ingredients_fr },
+    usage: { ar: p.usage_ar, fr: p.usage_fr },
+    price: Number(p.price),
+    compareAtPrice: p.compare_at_price ? Number(p.compare_at_price) : undefined,
+    stock: p.stock,
+    minStock: p.min_stock,
+    sku: p.sku,
+    barcode: p.barcode,
+    images: p.images || [],
+    videos: p.videos || [],
+    slug: p.slug,
+    isActive: p.is_active,
+    isFeatured: p.is_featured,
+    isBundle: p.is_bundle,
+    averageRating: Number(p.average_rating || 0),
+    reviewsCount: Number(p.reviews_count || 0),
+    category: p.categories ? {
+      _id: p.categories.id,
+      id: p.categories.id,
+      slug: p.categories.slug,
+      name: { ar: p.categories.name_ar, fr: p.categories.name_fr }
+    } : null,
+    variants: (p.product_variants || []).map((v: any) => ({
+      _id: v.id,
+      sku: v.sku,
+      barcode: v.barcode,
+      weight: v.weight,
+      price: Number(v.price),
+      compareAtPrice: v.compare_at_price ? Number(v.compare_at_price) : undefined,
+      stock: v.stock,
+    })),
+  };
+}
+
 export async function getFilteredProducts(params: FilterParams) {
   try {
-    await connectDB();
+    let query = supabase
+      .from("products")
+      .select("*, categories(*), product_variants(*)")
+      .eq("is_active", true);
 
-    const query: any = { isActive: true };
-
-    // تصفية حسب القسم
+    // 1. تصفية حسب القسم
     if (params.categorySlug) {
       if (params.categorySlug === "other") {
         const mainSlugs = ["natural-honey", "amlou", "argan-oils", "tea", "offers", "remedies", "perfumes"];
-        const otherCategories = await Category.find({ slug: { $nin: mainSlugs } }).lean();
-        query.category = { $in: otherCategories.map((c: any) => c._id) };
+        const { data: otherCats } = await supabase
+          .from("categories")
+          .select("id")
+          .not("slug", "in", `(${mainSlugs.join(",")})`);
+        
+        if (otherCats && otherCats.length > 0) {
+          query = query.in("category_id", otherCats.map(c => c.id));
+        }
       } else {
-        const category = await Category.findOne({ slug: params.categorySlug });
+        const { data: category } = await supabase
+          .from("categories")
+          .select("id")
+          .eq("slug", params.categorySlug)
+          .maybeSingle();
+
         if (category) {
-          query.category = category._id;
+          query = query.eq("category_id", category.id);
+        } else {
+          return [];
         }
       }
     }
 
-    // تصفية حسب محرك البحث (Text Search)
+    // 2. تصفية حسب البحث
     if (params.search) {
-      query.$text = { $search: params.search };
+      const s = params.search.trim();
+      query = query.or(`title_ar.ilike.%${s}%,title_fr.ilike.%${s}%,sku.ilike.%${s}%,barcode.ilike.%${s}%`);
     }
 
-    // تصفية حسب النطاق السعري
-    if (params.minPrice !== undefined || params.maxPrice !== undefined) {
-      query.price = {};
-      if (params.minPrice !== undefined) query.price.$gte = params.minPrice;
-      if (params.maxPrice !== undefined) query.price.$lte = params.maxPrice;
+    // 3. تصفية حسب السعر
+    if (params.minPrice !== undefined) {
+      query = query.gte("price", params.minPrice);
+    }
+    if (params.maxPrice !== undefined) {
+      query = query.lte("price", params.maxPrice);
     }
 
-    let sortOption: any = { createdAt: -1 }; // الافتراضي: الأحدث
-
+    // 4. الترتيب
     if (params.sortBy === "price_asc") {
-      sortOption = { price: 1 };
+      query = query.order("price", { ascending: true });
     } else if (params.sortBy === "price_desc") {
-      sortOption = { price: -1 };
+      query = query.order("price", { ascending: false });
+    } else {
+      query = query.order("created_at", { ascending: false });
     }
 
-    // جلب البيانات مع الفلترة والترتيب
-    const products = await Product.find(query)
-      .sort(sortOption)
-      .lean();
+    const { data: products, error } = await query;
 
-    // تحويل الكائنات لتكون متوافقة تماماً مع إرجاع واجهة المستخدم (التحويل لـ JSON نظيف)
-    return JSON.parse(JSON.stringify(products));
+    if (error) {
+      console.error("Supabase products query error:", error);
+      return [];
+    }
+
+    return (products || []).map(mapProduct);
   } catch (error) {
     console.error("Error fetching filtered products:", error);
     return [];
@@ -67,10 +125,15 @@ export async function getFilteredProducts(params: FilterParams) {
 
 export async function getProductBySlug(slug: string) {
   try {
-    await connectDB();
-    const product = await Product.findOne({ slug, isActive: true }).lean();
-    if (!product) return null;
-    return JSON.parse(JSON.stringify(product));
+    const { data: product, error } = await supabase
+      .from("products")
+      .select("*, categories(*), product_variants(*)")
+      .eq("slug", slug)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (error || !product) return null;
+    return mapProduct(product);
   } catch (error) {
     console.error("Error fetching product by slug:", error);
     return null;

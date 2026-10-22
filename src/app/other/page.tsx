@@ -1,27 +1,15 @@
 import React, { Suspense } from "react";
 import { ShopSection } from "@/components/customer/ShopSection";
-import { connectDB } from "@/lib/db";
-import { Category } from "@/models/Category";
-
-async function fetchCategories() {
-  try {
-    await connectDB();
-    const categories = await Category.find({ isActive: true }).lean();
-    return JSON.parse(JSON.stringify(categories));
-  } catch (error) {
-    console.error("Failed to load categories:", error);
-    return [];
-  }
-}
+import { getCategories } from "@/app/actions/categories";
 
 export default async function OtherPage() {
-  const categories = await fetchCategories();
+  const categories = await getCategories();
 
   return (
     <div className="bg-white dark:bg-neutral-950 min-h-screen py-10">
       <div className="text-center space-y-2 mb-8">
-        <h1 className="font-serif text-3xl font-bold text-neutral-900 dark:text-white">منتجات متنوعة أخرى</h1>
-        <p className="text-xs text-neutral-500">مقطرات طبيعية، منتجات تجميل، صناعة تقليدية مغربية فاخرة وكل ما تحتاجه.</p>
+        <h1 className="font-serif text-3xl font-bold text-neutral-900 dark:text-white">منتجات متنوعة وأخرى</h1>
+        <p className="text-xs text-neutral-500">تشكيلة مختارة من مختلف المنتجات الطبيعية والتقليدية الإضافية.</p>
       </div>
 
       <Suspense fallback={

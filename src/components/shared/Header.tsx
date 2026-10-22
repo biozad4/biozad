@@ -6,8 +6,9 @@ import { useSession, signOut } from "next-auth/react";
 import { exchangePointsForCoupon, getUserPoints } from "@/app/actions/loyalty";
 import { useToastStore } from "@/store/useToastStore";
 import { useCartStore } from "@/store/useCartStore";
+import { useFlyToCart } from "@/store/useFlyToCart";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag, Menu, X, Globe, User as UserIcon, LogOut, Award, Sparkles, ChevronDown } from "lucide-react";
+import { ShoppingBag, Menu, X, Globe, User as UserIcon, LogOut, Award, Sparkles, ChevronDown, Gift } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const TRANSLATIONS = {
@@ -15,6 +16,7 @@ const TRANSLATIONS = {
     brand: "BioZad",
     tagline: "الثمن ينقص والجودة تزداد",
     cart: "السلة",
+    home: "الرئيسية",
     allProducts: "كامل التشكيلة",
     honeyRemedies: "عسل ووصفات",
     honey: "عسل ومشتقاته",
@@ -38,6 +40,7 @@ const TRANSLATIONS = {
     brand: "BioZad",
     tagline: "Le prix baisse, la qualité augmente",
     cart: "Panier",
+    home: "Accueil",
     allProducts: "Toute la Collection",
     honeyRemedies: "Miel & Recettes",
     honey: "Miel & Dérivés",
@@ -85,6 +88,7 @@ export function Header() {
   // الحصول على عدد منتجات السلة الإجمالي
   const items = useCartStore((state) => state.items);
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
+  const isCartBouncing = useFlyToCart((state) => state.cartBouncing);
 
   const isRtl = dir === "rtl";
 
@@ -152,7 +156,8 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-neutral-100/50 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md">
+    <>
+      <header className="sticky top-0 z-50 w-full border-b border-neutral-100/50 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           
@@ -171,6 +176,12 @@ export function Header() {
 
             {/* 🖥️ روابط التنقل المكتبية المحسنة والذكية (Desktop Navigation) */}
             <nav className="hidden lg:flex items-center gap-5 xl:gap-6">
+              {/* الرئيسية */}
+              <a href="/" className="relative py-2 text-xs xl:text-sm font-bold text-neutral-700 dark:text-neutral-200 hover:text-primary dark:hover:text-accent transition-colors group">
+                <span>{t.home}</span>
+                <span className="absolute bottom-0 left-0 w-full h-[2px] bg-primary dark:bg-accent scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center" />
+              </a>
+
               {/* كامل التشكيلة */}
               <a href="/shop#products" className="relative py-2 text-xs xl:text-sm font-bold text-neutral-700 dark:text-neutral-200 hover:text-primary dark:hover:text-accent transition-colors group">
                 <span>{t.allProducts}</span>
@@ -297,6 +308,7 @@ export function Header() {
                 </AnimatePresence>
               </div>
 
+
               {/* عروض */}
               <a href="/offers#products" className="relative py-2 text-xs xl:text-sm font-bold text-neutral-600 dark:text-neutral-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1 group">
                 <Sparkles className="h-3.5 w-3.5 text-accent animate-pulse" />
@@ -324,18 +336,35 @@ export function Header() {
               <span>{lang === "ar" ? "FR" : "عربي"}</span>
             </button>
 
-            {/* 🛒 سلة المشتريات مجهزة بعداد تفاعلي ذكي */}
-            <button 
+            {/* 🛒 سلة المشتريات مجهزة بعداد تفاعلي ذكي وتأثير ارتدادي عند وصول المنتج الطائر */}
+            <motion.button 
+              id="header-cart-icon"
               onClick={() => setCartOpen(!cartOpen)}
+              animate={isCartBouncing ? {
+                scale: [1, 1.35, 0.9, 1.15, 1],
+                rotate: [0, -10, 10, -5, 0]
+              } : { scale: 1, rotate: 0 }}
+              transition={{ duration: 0.45, ease: "easeOut" }}
               className="relative rounded-full p-2 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
+              title={t.cart}
             >
               <ShoppingBag className="h-5 w-5" />
               {totalItems > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-accent text-[8px] font-black text-white ring-2 ring-white dark:ring-neutral-950 animate-bounce">
+                <span className={`absolute -top-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-accent text-[8px] font-black text-white ring-2 ring-white dark:ring-neutral-950 ${isCartBouncing ? "scale-125 bg-amber-500 transition-transform" : "animate-bounce"}`}>
                   {totalItems}
                 </span>
               )}
-            </button>
+
+              {/* حلقة تموج وتوهج ذهبية عند وصول المنتج الطائر للسلة */}
+              {isCartBouncing && (
+                <motion.span
+                  initial={{ scale: 0.8, opacity: 0.9 }}
+                  animate={{ scale: 2.2, opacity: 0 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="absolute inset-0 rounded-full border-2 border-amber-400 pointer-events-none"
+                />
+              )}
+            </motion.button>
 
             {/* نظام حساب المستخدم الذكي (تسجيل الدخول / لوحة نقاط الولاء) */}
             <div className="relative hidden sm:block">
@@ -471,6 +500,7 @@ export function Header() {
           </div>
         </div>
       </div>
+    </header>
 
       {/* 📱 لوحة تنقل الجوال (Mobile Navigation Drawer Menu) */}
       <AnimatePresence>
@@ -491,29 +521,34 @@ export function Header() {
               animate={{ x: 0 }}
               exit={{ x: isRtl ? "-100%" : "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className={`fixed top-0 bottom-0 z-50 w-full max-w-xs bg-white dark:bg-neutral-950 p-6 shadow-premium-lg flex flex-col lg:hidden ${
+              className={`fixed top-0 bottom-0 h-full z-50 w-full max-w-xs bg-white dark:bg-neutral-950 p-6 shadow-premium-lg flex flex-col lg:hidden ${
                 isRtl ? "left-0" : "right-0"
               }`}
             >
-              {/* حاوية قابلة للتمرير بالكامل لجميع محتويات القائمة لمنع انضغاط الروابط */}
-              <div className="overflow-y-auto flex-1 flex flex-col space-y-6 pr-1">
-                
-                {/* رأس القائمة */}
-                <div className="relative flex items-center justify-center border-b pb-4 dark:border-neutral-800">
-                  <div className="flex flex-col items-center gap-1">
-                    <img src="/logo.png" alt="BioZad Logo" className="h-10 w-auto object-contain select-none" />
-                    <span className="text-[7.5px] text-accent font-bold tracking-wider leading-none">{t.tagline}</span>
-                  </div>
-                  <button 
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="absolute end-0 top-1/2 -translate-y-1/2 rounded-full p-1.5 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
-                  >
-                    <X className="h-5 w-5 text-neutral-600 dark:text-neutral-400" />
-                  </button>
+              {/* رأس القائمة - يبقى ثابتاً في الأعلى */}
+              <div className="relative flex items-center justify-center border-b pb-4 dark:border-neutral-800 shrink-0">
+                <div className="flex flex-col items-center gap-1">
+                  <img src="/logo.png" alt="BioZad Logo" className="h-10 w-auto object-contain select-none" />
+                  <span className="text-[7.5px] text-accent font-bold tracking-wider leading-none">{t.tagline}</span>
                 </div>
+                <button 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="absolute end-0 top-1/2 -translate-y-1/2 rounded-full p-1.5 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
+                >
+                  <X className="h-5 w-5 text-neutral-600 dark:text-neutral-400" />
+                </button>
+              </div>
 
+              {/* حاوية المحتوى القابل للتمرير (الروابط والفوتر) مع استقرار لمنع انضغاط العناصر */}
+              <div className="flex-1 overflow-y-auto min-h-0 flex flex-col space-y-6 pr-1 mt-6">
+                
                 {/* روابط التنقل الرئيسية المباشرة للموبايل */}
-                <nav className="flex flex-col gap-4 text-xs font-bold text-neutral-700 dark:text-neutral-300">
+                <nav className="flex flex-col gap-4 text-xs font-bold text-neutral-700 dark:text-neutral-300 shrink-0">
+                  {/* الرئيسية */}
+                  <a href="/" onClick={() => setMobileMenuOpen(false)} className="hover:text-primary py-1 transition-colors">
+                    {t.home}
+                  </a>
+
                   {/* كامل التشكيلة */}
                   <a href="/shop#products" onClick={() => setMobileMenuOpen(false)} className="hover:text-primary py-1 transition-colors">
                     {t.allProducts}
@@ -591,6 +626,7 @@ export function Header() {
                     </AnimatePresence>
                   </div>
 
+
                   {/* عروض */}
                   <a href="/offers#products" onClick={() => setMobileMenuOpen(false)} className="hover:text-primary py-1 transition-colors border-t border-neutral-100 pt-2 dark:border-neutral-800 flex items-center gap-1">
                     <Sparkles className="h-3.5 w-3.5 text-accent animate-pulse" />
@@ -604,7 +640,7 @@ export function Header() {
                 </nav>
 
                 {/* ذيل القائمة - حساب العميل ومحولات اللغة (يتموقع بالأسفل بشكل مرن) */}
-                <div className="mt-auto border-t pt-6 space-y-4 dark:border-neutral-800">
+                <div className="mt-auto border-t pt-6 space-y-4 dark:border-neutral-800 shrink-0">
                   {/* تبديل اللغة */}
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-neutral-400 font-medium">{lang === "ar" ? "اللغة:" : "Langue :"}</span>
@@ -733,7 +769,6 @@ export function Header() {
           </>
         )}
       </AnimatePresence>
-
-    </header>
+    </>
   );
 }
