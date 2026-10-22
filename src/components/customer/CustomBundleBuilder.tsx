@@ -364,8 +364,8 @@ export function CustomBundleBuilder({ products, settings }: CustomBundleBuilderP
 
             </div>
 
-            {/* شبكة كروت المنتجات */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+            {/* شبكة كروت المنتجات: سطرين بكرتين على الموبايل و3 كروت على الشاشات الكبيرة */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-5">
               {filteredProducts.map((product) => {
                 const prodId = product._id || product.id;
                 const hasVariants = product.variants && product.variants.length > 0;
@@ -382,7 +382,7 @@ export function CustomBundleBuilder({ products, settings }: CustomBundleBuilderP
                 return (
                   <div
                     key={prodId}
-                    className={`rounded-3xl border transition-all duration-300 overflow-hidden flex flex-col justify-between bg-white dark:bg-neutral-900 group ${
+                    className={`rounded-2xl sm:rounded-3xl border transition-all duration-300 overflow-hidden flex flex-col justify-between bg-white dark:bg-neutral-900 group ${
                       inBundleQty > 0
                         ? "border-emerald-500 ring-2 ring-emerald-500/20 shadow-premium-md"
                         : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 hover:shadow-premium-sm"
@@ -397,17 +397,17 @@ export function CustomBundleBuilder({ products, settings }: CustomBundleBuilderP
                       />
 
                       {inBundleQty > 0 && (
-                        <span className="absolute top-3 right-3 bg-emerald-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
+                        <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-emerald-600 text-white text-[9px] sm:text-[10px] font-black px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full shadow-md flex items-center gap-1">
                           <Check className="h-3 w-3" />
-                          <span>في باقتك ({inBundleQty})</span>
+                          <span>({inBundleQty})</span>
                         </span>
                       )}
                     </div>
 
                     {/* المحتوى والأسعار */}
-                    <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                      <div className="space-y-1.5">
-                        <h4 className="font-serif font-bold text-sm text-neutral-900 dark:text-white line-clamp-1">
+                    <div className="p-2.5 sm:p-4 space-y-2 sm:space-y-3 flex-1 flex flex-col justify-between">
+                      <div className="space-y-1 sm:space-y-1.5">
+                        <h4 className="font-serif font-bold text-xs sm:text-sm text-neutral-900 dark:text-white line-clamp-1">
                           {product.title[lang]}
                         </h4>
 

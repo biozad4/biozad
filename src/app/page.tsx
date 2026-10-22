@@ -69,8 +69,8 @@ export default async function HomePage() {
           </h2>
         </div>
 
-        {/* شبكة عرض المنتجات الراقية: سطرين، كل سطر 4 منتجات (8 منتجات) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-7">
+        {/* شبكة عرض المنتجات الراقية: سطرين، كل سطر 4 منتجات (8 منتجات) وعلى الهاتف 2 في السطر */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           {featuredProducts.map((product: any) => (
             <ProductCard key={product._id} product={product} />
           ))}

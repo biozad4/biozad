@@ -111,7 +111,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-12 space-y-6 sm:space-y-10">
       
       {/* رابط العودة للمتجر */}
       <div className="flex justify-start">
@@ -124,7 +124,7 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         </a>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 lg:gap-12 items-start">
         
         {/* العمود الأول: صور المنتج (5 أعمدة) */}
         <div className="lg:col-span-5 space-y-4">

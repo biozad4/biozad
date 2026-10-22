@@ -102,17 +102,17 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <>
-      <PremiumCard hoverEffect={true} className="group relative flex flex-col justify-between overflow-hidden cursor-pointer h-full">
+      <PremiumCard hoverEffect={true} className="group relative flex flex-col justify-between overflow-hidden cursor-pointer h-full p-2.5 sm:p-5 rounded-2xl sm:rounded-[1.25rem]">
         
         {/* شارة نسبة الخصم الفاخرة */}
         {discountPercentage > 0 && (
-          <span className="absolute top-4 right-4 z-10 rounded-full bg-accent text-[10px] font-bold text-white px-2.5 py-1 tracking-wider uppercase">
+          <span className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 z-10 rounded-full bg-accent text-[9px] sm:text-[10px] font-bold text-white px-2 sm:px-2.5 py-0.5 sm:py-1 tracking-wider uppercase">
             -{discountPercentage}%
           </span>
         )}
 
         {/* غلاف الصورة التفاعلي مع حركات Apple الناعمة */}
-        <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-neutral-50 mb-4">
+        <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-neutral-50 mb-2.5 sm:mb-4">
           <motion.img
             whileHover={{ scale: 1.04 }}
             transition={{ duration: 0.5, ease: [0.25, 1, 0.5, 1] }}
@@ -123,60 +123,60 @@ export function ProductCard({ product }: ProductCardProps) {
 
           {/* شارة الخيارات المتعددة */}
           {hasVariants && (
-            <span className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm text-[9px] font-bold text-neutral-800 px-2 py-1 rounded-md border dark:bg-neutral-900/90 dark:text-white dark:border-neutral-800">
-              {lang === "ar" ? "⚖️ خيارات متعددة" : "⚖️ Multi-formats"}
+            <span className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-white/90 backdrop-blur-sm text-[8px] sm:text-[9px] font-bold text-neutral-800 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md border dark:bg-neutral-900/90 dark:text-white dark:border-neutral-800">
+              {lang === "ar" ? "⚖️ خيارات" : "⚖️ Formats"}
             </span>
           )}
         </div>
 
         {/* معلومات وتقييم المنتج */}
-        <div className="space-y-2 flex-1 flex flex-col justify-between">
+        <div className="space-y-1.5 sm:space-y-2 flex-1 flex flex-col justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-1 text-amber-500">
-              <Star className="h-3.5 w-3.5 fill-current" />
-              <span className="text-[10px] font-bold text-neutral-500">4.9 (45 تقييم)</span>
+              <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-current" />
+              <span className="text-[9px] sm:text-[10px] font-bold text-neutral-500">4.9 (45)</span>
             </div>
 
-            <h4 className="text-xs font-bold text-neutral-800 dark:text-neutral-100 line-clamp-1">
+            <h4 className="text-xs sm:text-sm font-bold text-neutral-800 dark:text-neutral-100 line-clamp-1">
               {title}
             </h4>
             
             {hasVariants && (
-              <p className="text-[10px] text-neutral-400">
+              <p className="text-[9px] sm:text-[10px] text-neutral-400 line-clamp-1">
                 {lang === "ar" ? "الأوزان:" : "Formats:"} {product.variants!.map(v => v.weight).join(" | ")}
               </p>
             )}
           </div>
 
-          <div className="pt-2 border-t border-neutral-100 dark:border-neutral-900 flex flex-col gap-3">
+          <div className="pt-2 border-t border-neutral-100 dark:border-neutral-900 flex flex-col gap-2 sm:gap-3">
             {/* السعر الحالي والقديم */}
-            <div className="flex items-center gap-2">
-              <span className="text-base font-extrabold text-primary dark:text-accent font-mono">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="text-sm sm:text-base font-extrabold text-primary dark:text-accent font-mono">
                 {currentPrice} {lang === "ar" ? "د.م." : "DH"}
               </span>
               {discountPercentage > 0 && (
-                <span className="text-xs text-neutral-400 line-through font-mono">
+                <span className="text-[10px] sm:text-xs text-neutral-400 line-through font-mono">
                   {currentComparePrice} {lang === "ar" ? "د.م." : "DH"}
                 </span>
               )}
             </div>
 
             {/* الأزرار التفاعلية المزدوجة (CTAs) */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2 pt-0.5">
               <button
                 onClick={handleAddToCart}
-                className="flex items-center justify-center gap-1 bg-primary text-white text-[11px] font-bold py-2.5 rounded-full hover:bg-primary/95 transition-all active:scale-[0.97]"
+                className="flex items-center justify-center gap-1 bg-primary text-white text-[10px] sm:text-[11px] font-bold py-2 sm:py-2.5 px-1 rounded-full hover:bg-primary/95 transition-all active:scale-[0.97]"
               >
-                <ShoppingCart className="h-3.5 w-3.5" />
-                <span>{lang === "ar" ? "سلة" : "Panier"}</span>
+                <ShoppingCart className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+                <span className="truncate">{lang === "ar" ? "سلة" : "Panier"}</span>
               </button>
 
               <a
                 href={`/product/${product.slug}`}
-                className="flex items-center justify-center gap-1 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 text-[11px] font-bold py-2.5 rounded-full hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-all active:scale-[0.97]"
+                className="flex items-center justify-center gap-1 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 text-[10px] sm:text-[11px] font-bold py-2 sm:py-2.5 px-1 rounded-full hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-all active:scale-[0.97]"
               >
-                <Eye className="h-3.5 w-3.5" />
-                <span>{lang === "ar" ? "تفاصيل" : "Détails"}</span>
+                <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+                <span className="truncate">{lang === "ar" ? "تفاصيل" : "Détails"}</span>
               </a>
             </div>
           </div>

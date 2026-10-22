@@ -57,22 +57,22 @@ export function Hero({ bundle }: HeroProps) {
   }, []);
 
   return (
-    <section className="relative overflow-hidden bg-[#FAF9F6] dark:bg-neutral-950 py-20 lg:py-32">
+    <section className="relative overflow-hidden bg-[#FAF9F6] dark:bg-neutral-950 py-8 sm:py-16 lg:py-24">
       {/* خلفية جمالية مدمجة بألوان هادئة ونقوش خافتة */}
       <div className="absolute top-1/2 left-1/2 -z-10 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-tr from-accent/10 to-primary/5 blur-3xl opacity-70" />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           
           {/* النصوص التفاعلية */}
-          <div className="space-y-8 text-center lg:text-start">
+          <div className="space-y-5 sm:space-y-8 text-center lg:text-start">
             
             {/* الشارة العلوية (Badge) */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary/5 border border-primary/10 px-4 py-1.5 text-xs font-semibold text-primary dark:text-accent"
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary/5 border border-primary/10 px-3.5 sm:px-4 py-1 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-primary dark:text-accent"
             >
               {c.badge}
             </motion.div>
@@ -82,7 +82,7 @@ export function Hero({ bundle }: HeroProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight text-neutral-900 dark:text-white"
+              className="font-serif text-2xl sm:text-4xl lg:text-6xl font-bold leading-tight text-neutral-900 dark:text-white"
             >
               {c.title}
             </motion.h1>
@@ -92,7 +92,7 @@ export function Hero({ bundle }: HeroProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-base sm:text-lg text-neutral-600 dark:text-neutral-400 max-w-xl mx-auto lg:mx-0 leading-relaxed"
+              className="text-xs sm:text-base lg:text-lg text-neutral-600 dark:text-neutral-400 max-w-xl mx-auto lg:mx-0 leading-relaxed"
             >
               {c.desc}
             </motion.p>

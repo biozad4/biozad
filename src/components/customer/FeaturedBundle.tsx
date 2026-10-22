@@ -382,59 +382,65 @@ export function FeaturedBundle({ bundle, bundles, customBundleActive = false }: 
                   <span>{lang === "ar" ? "سلّم التخفيض الفوري التلقائي:" : "Barème des remises automatiques :"}</span>
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
-                    <span className="text-neutral-300 font-semibold">{lang === "ar" ? "مجموع 300 د.م. فأكثر" : "Dès 300 DH d'achats"}</span>
-                    <span className="font-mono font-black text-emerald-400 bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-500/30">
-                      -10% {lang === "ar" ? "تخفيض" : "OFF"}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-xl bg-white/5 border border-white/10">
+                    <span className="text-neutral-300 font-semibold text-[10px] sm:text-xs">{lang === "ar" ? "من 300 د.م." : "Dès 300 DH"}</span>
+                    <span className="font-mono font-black text-emerald-400 bg-emerald-950/60 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-emerald-500/30 text-[10px] sm:text-xs">
+                      -10% {lang === "ar" ? "خصم" : "OFF"}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-amber-400/20">
-                    <span className="text-neutral-300 font-semibold">{lang === "ar" ? "مجموع 500 د.م. فأكثر" : "Dès 500 DH d'achats"}</span>
-                    <span className="font-mono font-black text-amber-300 bg-amber-950/60 px-2.5 py-1 rounded-lg border border-amber-400/30">
-                      -15% {lang === "ar" ? "تخفيض" : "OFF"}
+                  <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-xl bg-white/5 border border-amber-400/20">
+                    <span className="text-neutral-300 font-semibold text-[10px] sm:text-xs">{lang === "ar" ? "من 500 د.م." : "Dès 500 DH"}</span>
+                    <span className="font-mono font-black text-amber-300 bg-amber-950/60 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border border-amber-400/30 text-[10px] sm:text-xs">
+                      -15% {lang === "ar" ? "خصم" : "OFF"}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* بطاقات المزايا الثلاث الراقية بأيقونات فيكتور متناسقة */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1.5 hover:bg-white/[0.07] transition-colors">
-                  <div className="h-8 w-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+              {/* بطاقات المزايا الثلاث الراقية بأيقونات فيكتور متناسقة ومحسنة للهاتف */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                <div className="flex sm:flex-col items-center sm:items-start gap-3 sm:gap-1.5 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] transition-colors">
+                  <div className="h-8 w-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                     <SlidersHorizontal className="h-4 w-4" />
                   </div>
-                  <h4 className="text-xs font-bold text-white">
-                    {lang === "ar" ? "1. حرية الاختيار" : "1. Choix Libre"}
-                  </h4>
-                  <p className="text-[10px] text-neutral-400 leading-relaxed">
-                    {lang === "ar" ? "أضف ما تحبه من عسل وأملو وزيوت بالأحجام التي تريد." : "Sélectionnez vos produits favoris."}
-                  </p>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">
+                      {lang === "ar" ? "1. حرية الاختيار" : "1. Choix Libre"}
+                    </h4>
+                    <p className="text-[10px] text-neutral-400 leading-relaxed">
+                      {lang === "ar" ? "أضف ما تحبه من عسل وأملو وزيوت بالأحجام التي تريد." : "Sélectionnez vos produits favoris."}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1.5 hover:bg-white/[0.07] transition-colors">
-                  <div className="h-8 w-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center">
+                <div className="flex sm:flex-col items-center sm:items-start gap-3 sm:gap-1.5 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] transition-colors">
+                  <div className="h-8 w-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0">
                     <TrendingDown className="h-4 w-4" />
                   </div>
-                  <h4 className="text-xs font-bold text-amber-300">
-                    {lang === "ar" ? "2. خصم فوري يرتفع" : "2. Remise Directe"}
-                  </h4>
-                  <p className="text-[10px] text-neutral-400 leading-relaxed">
-                    {lang === "ar" ? "يطبق الخصم تلقائياً كلما أضفت منتجات أكثر للباقة." : "Calculée et appliquée instantanément."}
-                  </p>
+                  <div>
+                    <h4 className="text-xs font-bold text-amber-300">
+                      {lang === "ar" ? "2. خصم فوري يرتفع" : "2. Remise Directe"}
+                    </h4>
+                    <p className="text-[10px] text-neutral-400 leading-relaxed">
+                      {lang === "ar" ? "يطبق الخصم تلقائياً كلما أضفت منتجات أكثر للباقة." : "Calculée et appliquée instantanément."}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-1.5 hover:bg-white/[0.07] transition-colors">
-                  <div className="h-8 w-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <div className="flex sm:flex-col items-center sm:items-start gap-3 sm:gap-1.5 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] transition-colors">
+                  <div className="h-8 w-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                     <PackageCheck className="h-4 w-4" />
                   </div>
-                  <h4 className="text-xs font-bold text-emerald-300">
-                    {lang === "ar" ? "3. تغليف هدايا راقٍ" : "3. Emballage Cadeau"}
-                  </h4>
-                  <p className="text-[10px] text-neutral-400 leading-relaxed">
-                    {lang === "ar" ? "صندوق فاخر محكم الحماية وتوصيل آمن لباب البيت." : "Coffret élégant offert et sécurisé."}
-                  </p>
+                  <div>
+                    <h4 className="text-xs font-bold text-emerald-300">
+                      {lang === "ar" ? "3. تغليف هدايا راقٍ" : "3. Emballage Cadeau"}
+                    </h4>
+                    <p className="text-[10px] text-neutral-400 leading-relaxed">
+                      {lang === "ar" ? "صندوق فاخر محكم الحماية وتوصيل آمن لباب البيت." : "Coffret élégant offert et sécurisé."}
+                    </p>
+                  </div>
                 </div>
               </div>
 
