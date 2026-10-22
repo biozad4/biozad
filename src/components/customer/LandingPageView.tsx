@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { InstantCODForm, SelectedOffer } from "./InstantCODForm";
+import { GoldenTrustBar } from "./GoldenTrustBar";
 import { FacebookPixel } from "../shared/FacebookPixel";
 import * as pixel from "@/lib/pixel";
 import {
@@ -343,6 +344,9 @@ export function LandingPageView({ page, whatsappNumber }: LandingPageViewProps) 
                 })}
               </div>
             </div>
+
+            {/* شريط الضمانات المغربي الذهبي لتعزيز الثقة قبل إدخال البيانات */}
+            <GoldenTrustBar variant="compact" />
 
             {/* الخطوة 2: استمارة COD الفورية */}
             <div className="space-y-2">

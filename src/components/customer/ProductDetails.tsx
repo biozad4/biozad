@@ -10,6 +10,7 @@ import { PremiumButton } from "../ui/premium-button";
 import { PremiumCard } from "../ui/premium-card";
 import { ShoppingCart, Star, Copy, Check, Info, ArrowRight, ShieldCheck, Truck, MessageCircle } from "lucide-react";
 import { normalizeWhatsAppPhone, DEFAULT_WHATSAPP_NUMBER } from "@/lib/whatsapp";
+import { GoldenTrustBar } from "./GoldenTrustBar";
 
 interface ProductDetailsProps {
   product: {
@@ -271,6 +272,9 @@ export function ProductDetails({ product }: ProductDetailsProps) {
               </span>
             </button>
           </div>
+
+          {/* شريط الضمانات الذهبي لتعزيز ثقة الزبون قبل الشراء */}
+          <GoldenTrustBar variant="compact" />
 
           {/* المميزات الترويحية السريعة */}
           <div className="grid grid-cols-2 gap-4 border-t border-neutral-100 dark:border-neutral-900 pt-6">

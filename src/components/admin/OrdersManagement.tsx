@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { getAdminOrders, updateOrderStatus } from "@/app/actions/adminOrders";
 import { useToastStore } from "@/store/useToastStore";
 import { PremiumCard } from "../ui/premium-card";
-import { Search, Filter, MapPin, Calendar, Clock, Package, Check, X, Truck, ChevronDown, ChevronUp, Clock4, ShieldCheck, Ban, MessageCircle } from "lucide-react";
+import { Search, Filter, MapPin, Calendar, Clock, Package, Check, X, Truck, ChevronDown, ChevronUp, Clock4, ShieldCheck, Ban, MessageCircle, Volume2, VolumeX, Download, FileSpreadsheet, Bell } from "lucide-react";
 import { getAdminToCustomerWhatsAppUrl } from "@/lib/whatsapp";
 
 // ==========================================
@@ -484,28 +484,92 @@ export function OrdersManagement() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [orderSource, setOrderSource] = useState<"website" | "pos">("website");
   const [activeStage, setActiveStage] = useState<"processing" | "shipping" | "delivered" | "cancelled">("processing");
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const { showToast } = useToastStore();
 
-  const loadOrders = async () => {
-    setLoading(true);
+  const knownOrderIdsRef = useRef<Set<string>>(new Set());
+  const isFirstLoadRef = useRef(true);
+
+  // تشغيل نغمة صوتية فاخرة وواضحة عند وصول طلبية جديدة (Web Audio API بدون ملفات خارجية)
+  const playNewOrderChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+
+      // النغمة الأولى: 587.33 Hz (D5)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(587.33, now);
+      gain1.gain.setValueAtTime(0.3, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.35);
+
+      // النغمة الثانية: 880 Hz (A5)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(880, now + 0.15);
+      gain2.gain.setValueAtTime(0.4, now + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.15);
+      osc2.stop(now + 0.6);
+    } catch (e) {
+      console.warn("Audio chime could not play:", e);
+    }
+  };
+
+  const loadOrders = async (isBackgroundPoll = false) => {
+    if (!isBackgroundPoll) setLoading(true);
     const res = await getAdminOrders();
     if (res.success && res.orders) {
-      setOrders(res.orders);
+      const fetchedOrders = res.orders;
+
+      // فحص وصول طلبيات جديدة لتشغيل التنبيه الصوتي
+      if (!isFirstLoadRef.current && soundEnabled) {
+        const hasNewOrder = fetchedOrders.some((o: any) => !knownOrderIdsRef.current.has(o._id));
+        if (hasNewOrder) {
+          playNewOrderChime();
+          showToast("🔔 طلبية جديدة وصلت للتو! تفقد قسم المعالجة لتأكيد الشحن.", "info");
+        }
+      }
+
+      // تحديث قائمة المعرفات المعروفة
+      fetchedOrders.forEach((o: any) => knownOrderIdsRef.current.add(o._id));
+      isFirstLoadRef.current = false;
+      setOrders(fetchedOrders);
     } else {
-      showToast(res.message || "فشل جلب الطلبيات", "error");
+      if (!isBackgroundPoll) {
+        showToast(res.message || "فشل جلب الطلبيات", "error");
+      }
     }
-    setLoading(false);
+    if (!isBackgroundPoll) setLoading(false);
   };
 
   useEffect(() => {
     loadOrders();
+
+    // فحص دوري تلقائي كل 25 ثانية لجلب أي طلبية جديدة تلقائياً مع التنبيه الصوتي
+    const interval = setInterval(() => {
+      loadOrders(true);
+    }, 25000);
+
     // قراءة المرحلة من الرابط URL (لينك خاص بكل مرحلة)
     const params = new URLSearchParams(window.location.search);
     const stageParam = params.get("stage");
     if (stageParam === "processing" || stageParam === "shipping" || stageParam === "delivered" || stageParam === "cancelled") {
       setActiveStage(stageParam);
     }
-  }, []);
+
+    return () => clearInterval(interval);
+  }, [soundEnabled]);
 
   const handleStageChange = (stage: "processing" | "shipping" | "delivered" | "cancelled") => {
     setActiveStage(stage);
@@ -547,23 +611,139 @@ export function OrdersManagement() {
     showToast("تم نسخ كود الخصم بنجاح! 📋", "success");
   };
 
+  // دالة تصدير الطلبيات بنقرة واحدة لملف CSV/Excel متوافق مع شركات الشحن والتوصيل المغربية
+  const exportOrdersToCSV = (onlyConfirmed = false) => {
+    const targetOrders = onlyConfirmed
+      ? filteredOrders.filter((o) => o.status === "confirmed" || o.status === "pending")
+      : filteredOrders;
+
+    if (targetOrders.length === 0) {
+      showToast("لا توجد طلبيات متاحة للتصدير حالياً", "error");
+      return;
+    }
+
+    const headers = [
+      "رقم الطلب",
+      "تاريخ الطلب",
+      "اسم الزبون",
+      "رقم الهاتف",
+      "المدينة",
+      "العنوان",
+      "ملاحظات الزبون",
+      "المنتجات المطلوبة",
+      "المبلغ الإجمالي عند الاستلام (د.م)",
+      "حالة الطلب",
+      "مصدر الطلب"
+    ];
+
+    const rows = targetOrders.map((order) => {
+      const itemsList = (order.items || [])
+        .map((it: any) => `${it.title?.ar || it.title || "منتج"} (x${it.quantity})`)
+        .join(" + ");
+
+      const cleanPhone = (order.guestDetails?.phone || "").replace(/\s+/g, "");
+      const formattedPhone = cleanPhone ? `="${cleanPhone}"` : `""`;
+
+      return [
+        `"${order.orderNumber}"`,
+        `"${new Date(order.createdAt).toLocaleDateString("ar-MA")}"`,
+        `"${(order.guestDetails?.name || order.cashier?.name || "زبون").replace(/"/g, '""')}"`,
+        formattedPhone,
+        `"${(order.guestDetails?.city || "المحل").replace(/"/g, '""')}"`,
+        `"${(order.guestDetails?.address || "غير محدد").replace(/"/g, '""')}"`,
+        `"${(order.guestDetails?.notes || "").replace(/"/g, '""')}"`,
+        `"${itemsList.replace(/"/g, '""')}"`,
+        order.total || 0,
+        `"${order.status}"`,
+        `"${order.source === "pos" ? "نقطة بيع" : "موقع إلكتروني"}"`
+      ].join(",");
+    });
+
+    // إضافة BOM لدعم الحروف العربية في Excel
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const dateStr = new Date().toISOString().split("T")[0];
+    link.setAttribute("href", url);
+    link.setAttribute("download", `طلبيات_BioZad_${onlyConfirmed ? "للتوصيل_" : ""}${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast(`✓ تم تصدير ${targetOrders.length} طلبية إلى ملف Excel بنجاح!`, "success");
+  };
+
   return (
     <div className="space-y-6 p-6 md:p-8">
-      {/* رأس الصفحة */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="text-right w-full sm:w-auto">
-          <h2 className="text-xl font-serif font-bold text-neutral-900 dark:text-white flex items-center gap-2 justify-end">
+      {/* رأس الصفحة مع أزرار التصدير والتنبيه الصوتي */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm">
+        <div className="text-right w-full lg:w-auto">
+          <h2 className="text-xl font-serif font-black text-neutral-900 dark:text-white flex items-center gap-2 justify-end">
             <span>إدارة وتتبع طلبيات العملاء</span>
             <Package className="h-5 w-5 text-primary" />
           </h2>
-          <p className="text-xs text-neutral-500 mt-1">تتبع الحالات الثلاث لطلبات المتجر وتحديث نقاط الولاء تلقائياً.</p>
+          <p className="text-xs text-neutral-500 mt-1">
+            متابعة الطلبيات الفورية، التنبيه الصوتي، وتصدير لوائح الشحن لشركات التوصيل.
+          </p>
         </div>
-        <button 
-          onClick={loadOrders} 
-          className="text-xs font-bold text-primary hover:underline bg-neutral-100 dark:bg-neutral-800 px-3 py-1.5 rounded-lg shrink-0"
-        >
-          🔄 تحديث الطلبات
-        </button>
+
+        {/* أزرار الإجراءات السريعة */}
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
+          {/* زر التنبيه الصوتي */}
+          <button
+            onClick={() => {
+              const nextState = !soundEnabled;
+              setSoundEnabled(nextState);
+              if (nextState) {
+                playNewOrderChime();
+                showToast("🔔 تم تفعيل التنبيه الصوتي للطلبيات الجديدة", "success");
+              } else {
+                showToast("🔕 تم كتم صوت التنبيهات", "info");
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+              soundEnabled
+                ? "bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 shadow-sm"
+                : "bg-neutral-100 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-500"
+            }`}
+            title="تفعيل/تعطيل صوت الإشعار عند وصول طلبية جديدة"
+          >
+            {soundEnabled ? <Volume2 className="h-4 w-4 text-amber-600 animate-pulse" /> : <VolumeX className="h-4 w-4" />}
+            <span>{soundEnabled ? "التنبيه الصوتي: شغال 🔔" : "الصوت مكتوم 🔕"}</span>
+          </button>
+
+          {/* زر تصدير طلبيات الشحن لـ Excel */}
+          <button
+            onClick={() => exportOrdersToCSV(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 transition-all active:scale-95"
+            title="تصدير الطلبيات المؤكدة وقيد المعالجة كملف جاهز لشركة الشحن"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>تصدير لشركة التوصيل (Excel)</span>
+          </button>
+
+          {/* زر تصدير كافة الطلبيات */}
+          <button
+            onClick={() => exportOrdersToCSV(false)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 transition-all"
+            title="تصدير كل الطلبيات الحالية"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>تصدير الكل (CSV)</span>
+          </button>
+
+          {/* زر التحديث اليدوي */}
+          <button 
+            onClick={() => loadOrders(false)} 
+            className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-primary dark:text-accent transition-all shrink-0"
+            title="تحديث فوري لقائمة الطلبيات"
+          >
+            <span>🔄</span>
+            <span>تحديث</span>
+          </button>
+        </div>
       </div>
 
       {/* تبويبات الفرز المصدر: أونلاين vs POS */}

@@ -8,6 +8,7 @@ import { Footer } from "@/components/shared/Footer";
 
 import { FlyToCartOverlay } from "@/components/customer/FlyToCartOverlay";
 import { FacebookPixel } from "@/components/shared/FacebookPixel";
+import { FloatingWhatsApp } from "@/components/shared/FloatingWhatsApp";
 
 export const metadata: Metadata = {
   title: "BioZad | منتجات مغربية طبيعية فاخرة",
@@ -31,6 +32,7 @@ export default function RootLayout({
           <PremiumToast />
           <main className="flex-1">{children}</main>
           <Footer />
+          <FloatingWhatsApp />
         </SessionProvider>
       </body>
     </html>

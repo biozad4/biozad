@@ -64,6 +64,7 @@ export function LandingPageBuilder({ products }: LandingPageBuilderProps) {
       originalPrice: 250,
       stockLeft: 7,
       facebookPixelId: "",
+      tiktokPixelId: "",
       offers: [
         {
           id: "offer-1",
@@ -839,34 +840,55 @@ export function LandingPageBuilder({ products }: LandingPageBuilderProps) {
             {/* العمود الأيسر: بيكسل فيسبوك + إعدادات SEO + الثقة (4 أعمدة) */}
             <div className="lg:col-span-4 space-y-6">
               
-              {/* بطاقة فيسبوك بيكسل الخاصة بالحملة */}
+              {/* بطاقة بيكسل الإعلانات (Meta + TikTok) */}
               <PremiumCard hoverEffect={false} className="p-6 space-y-4 border-primary/30 bg-primary/[0.02]">
                 <div className="space-y-1">
                   <h3 className="font-serif text-base font-bold text-neutral-900 dark:text-white flex items-center gap-2">
                     <span className="p-1 rounded-md bg-[#1877F2] text-white text-[10px] font-bold font-mono">f</span>
-                    <span>Facebook Pixel للحملة</span>
+                    <span className="p-1 rounded-md bg-black text-white text-[10px] font-bold font-mono">TT</span>
+                    <span>بيكسل الإعلانات (Facebook & TikTok)</span>
                   </h3>
                   <p className="text-[11px] text-neutral-500">
-                    تتبع أحداث الشراء (Purchase) وتأكيد الطلبات (Lead) بدقة متناهية لتحسين خوارزميات إعلانات Meta.
+                    تتبع أحداث الشراء (Purchase) وتأكيد الطلبات (Lead) بدقة متناهية لتحسين خوارزميات إعلانات Meta و TikTok.
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                    معرف بيكسل فيسبوك (Pixel ID)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.hero.facebookPixelId || ""}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      hero: { ...formData.hero, facebookPixelId: e.target.value.trim() }
-                    })}
-                    className="w-full border rounded-xl p-3 text-xs font-mono"
-                    placeholder="مثال: 123456789012345"
-                  />
-                  <span className="text-[10px] text-neutral-400 block">
-                    إذا تركته فارغاً، سيتم استخدام البيكسل العام للمتجر تلقائياً.
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
+                      <span className="text-[#1877F2]">Facebook Pixel ID</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.hero.facebookPixelId || ""}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        hero: { ...formData.hero, facebookPixelId: e.target.value.trim() }
+                      })}
+                      className="w-full border rounded-xl p-3 text-xs font-mono"
+                      placeholder="مثال: 123456789012345"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 flex items-center gap-1.5">
+                      <span className="text-black dark:text-white font-extrabold">TikTok Pixel ID</span>
+                      <span className="text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-1.5 py-0.5 rounded font-bold">جديد</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.hero.tiktokPixelId || ""}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        hero: { ...formData.hero, tiktokPixelId: e.target.value.trim() }
+                      })}
+                      className="w-full border rounded-xl p-3 text-xs font-mono"
+                      placeholder="مثال: C6ABCD123456789"
+                    />
+                  </div>
+
+                  <span className="text-[10px] text-neutral-400 block pt-1">
+                    إذا تركت أي منهما فارغاً، سيتم اعتماد البيكسل العام للمتجر تلقائياً.
                   </span>
                 </div>
               </PremiumCard>
