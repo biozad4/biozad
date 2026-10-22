@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useUIStore } from "@/store/useUIStore";
+import { usePathname } from "next/navigation";
 import { Mail, Phone, MapPin, ArrowRight } from "lucide-react";
 
 const TRANSLATIONS = {
@@ -43,6 +44,12 @@ const TRANSLATIONS = {
 
 export function Footer() {
   const { lang } = useUIStore();
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/admin") || pathname.startsWith("/pos") || pathname.startsWith("/lp")) {
+    return null;
+  }
+
   const t = TRANSLATIONS[lang];
 
   return (

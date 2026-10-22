@@ -111,8 +111,8 @@ export function Header() {
     }
   }, [session]);
 
-  if (pathname.startsWith("/admin") || pathname.startsWith("/pos")) {
-    return null; // يختفي الهيدر تماماً في صفحات الإدارة والـ POS
+  if (pathname.startsWith("/admin") || pathname.startsWith("/pos") || pathname.startsWith("/lp")) {
+    return null; // يختفي الهيدر تماماً في صفحات الإدارة والـ POS وصفحات الهبوط
   }
 
   const t = TRANSLATIONS[lang];
